@@ -36,5 +36,9 @@ private:
 	RTCScene scene_;
 	Camera camera_;
 
-    bool is_visible(const Vector3 x, const Vector3 y);
+    bool is_visible(Vector3 x, Vector3 y);
+
+    Vector3 trace(RTCRay ray, int depth, int max_depth);
+
+    static RTCRay make_secondary_ray(const Vector3 &origin, const Vector3 &dir);
 };

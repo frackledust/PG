@@ -134,10 +134,13 @@ int LoadMTL( const char * file_name, const char * path, std::vector<Material *> 
 				}
 				if ( strstr( tmp, "Kd" ) == tmp ) // diffuse color of the material
 				{
+                    // TODO: call expand function on diffuse color
+                    material->diffuse = Vector3(material->diffuse.to_color4f());
 					sscanf( tmp, "%*s %f %f %f", &material->diffuse.x, &material->diffuse.y, &material->diffuse.z );
 				}
 				if ( strstr( tmp, "Ks" ) == tmp ) // specular color of the material
 				{
+                    material->specular = Vector3(material->specular.to_color4f());
 					sscanf( tmp, "%*s %f %f %f", &material->specular.x, &material->specular.y, &material->specular.z );
 				}
 				if ( strstr( tmp, "Ke" ) == tmp ) // emission color of the material

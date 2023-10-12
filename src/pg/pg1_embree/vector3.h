@@ -57,7 +57,12 @@ public:
 	Vector3( const float x, const float y, const float z ) : x( x ), y( y ), z( z ) { }
 
     Vector3(Color3f color) : x(color.r), y(color.g), z(color.b) { }
-    Vector3(Color4f color) : x(color.r), y(color.g), z(color.b) { }
+    Vector3(Color4f color) {
+        color.expand();
+        x = color.r;
+        y = color.g;
+        z = color.b;
+    }
 
     Color3f to_color3f() const {
         return Color3f{x, y, z};
@@ -65,6 +70,15 @@ public:
 
     Color4f to_color4f() const {
         return Color4f{x, y, z, 1.0f};
+    }
+
+    explicit operator Color3f() const{
+        return Color3f{x, y, z};
+    }
+
+    explicit operator Color4f() const{
+        Color4f tmp =  Color4f{x, y, z, 1.0f};
+        return tmp.compress(); // linear rgb to srgb
     }
 
 	//! Konstruktor z pole.

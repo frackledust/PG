@@ -107,7 +107,7 @@ void Raytracer::LoadScene(const std::string file_name)
 // bodové svetlo: n = u*n1 + v*n2 + (1-u-v)*n3
 // color=diff_color*cross(n*l)
 float clamp(float x, float x0 = 0.0f, float x1 = 1.0f){
-    return max(min(x, x1), x0);
+    return max(min(x, x0), x1);
 }
 
 bool Raytracer::is_visible(const Vector3 x, const Vector3 y){
@@ -128,9 +128,13 @@ bool Raytracer::is_visible(const Vector3 x, const Vector3 y){
     return !ray_hit.has_hit();
 }
 
-Color4f Raytracer::get_pixel(const int x, const int y, const float t)
-{
-	RTCRay ray = this->camera_.GenerateRay((float)x, (float)y);
+RTCRay Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir) {
+    return {origin, dir, 0.001f};
+}
+
+Vector3 Raytracer::trace(RTCRay ray, const int depth = 0, const int max_depth = 10){
+    if(depth >= max_depth) return Vector3();
+
     RTCRayHit ray_hit(ray);
 
     // intersect ray with the scene
@@ -153,15 +157,23 @@ Color4f Raytracer::get_pixel(const int x, const int y, const float t)
                         RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tex_coord.u, 2);
 
 
-        Color3f diffuse_color = material->diffuse.to_color3f();
+        Color3f diffuse_color = Color3f(material->diffuse);
+        Color3f specular_color = Color3f(material->specular);
         Texture * diffuse_texture = material->get_texture(Material::kDiffuseMapSlot);
+        Texture * specular_texture = material->get_texture(Material::kSpecularMapSlot);
         if(diffuse_texture){
-            Color3f diffuse_textel = diffuse_texture->get_texel(tex_coord.u, 1 - tex_coord.v);
-            diffuse_color = diffuse_textel;
+            Color3f diffuse_texel = diffuse_texture->get_texel(tex_coord.u, 1 - tex_coord.v);
+            diffuse_color = diffuse_texel;
+        }
+
+        if(specular_texture){
+            Color3f specular_texel = specular_texture->get_texel(tex_coord.u, 1 - tex_coord.v);
+            specular_color = specular_texel;
         }
 
         Vector3 diffuse_color_v = Vector3(diffuse_color);
-        const Vector3 omni_light_position{100, 200, 1000};
+        Vector3 specular_color_v = Vector3(specular_color);
+        const Vector3 omni_light_position{200, -500, 100};
         const Vector3 hit_point = ray_hit.get_hit_point();
 
         Vector3 d{ray.org_x, ray.org_y, ray.org_z};
@@ -172,16 +184,35 @@ Color4f Raytracer::get_pixel(const int x, const int y, const float t)
         Vector3 l = omni_light_position - hit_point;
         normal.Normalize();
         l.Normalize();
-        Vector3 output = diffuse_color_v  * clamp(fabsf(normal.DotProduct(l)));
+
+        Vector3 output;
+        //Phong
+        output += material->ambient;
 
         if(is_visible(hit_point, omni_light_position)){
-            return output.to_color4f();
+            // TODO: fix
+            output += diffuse_color_v * clamp((normal.DotProduct(l)));
+            Vector3 l_r = 2 * (l.DotProduct(normal)) * normal - l;
+            l_r.Normalize();
+
+            RTCRay secondary_ray = make_secondary_ray(hit_point, l_r);
+
+            Vector3 L_i = trace(secondary_ray, depth + 1);
+            output += L_i * specular_color_v * powf(clamp(l_r.DotProduct(-d)), material->shininess);
+
         }
-        return Color4f{ 1.0f, 1.0f, 1.0f, 0.0f };
+        return output;
     }
 
-	//r g b a
-	return Color4f{ 0.0f, 1.0f, 1.0f, 0.2f };
+    //r g b a
+    return {};
+}
+
+Color4f Raytracer::get_pixel(const int x, const int y, const float t)
+{
+	RTCRay ray = this->camera_.GenerateRay((float)x, (float)y);
+    Vector3 result = trace(ray, 0, 5);
+    return static_cast<Color4f>(result);
 }
 
 int Raytracer::Ui()
