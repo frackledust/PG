@@ -1,6 +1,8 @@
 #ifndef VECTOR3_H_
 #define VECTOR3_H_
 
+#include "structs.h"
+
 /*! \struct Vector3
 \brief Trojrozmìrný (3D) vektor.
 
@@ -20,6 +22,7 @@ v.Normalize();
 \version 0.95
 \date 2007-2015
 */
+
 struct /*ALIGN*/ Vector3
 {
 public:
@@ -52,6 +55,17 @@ public:
 	\param z tøetí složka vektoru.
 	*/
 	Vector3( const float x, const float y, const float z ) : x( x ), y( y ), z( z ) { }
+
+    Vector3(Color3f color) : x(color.r), y(color.g), z(color.b) { }
+    Vector3(Color4f color) : x(color.r), y(color.g), z(color.b) { }
+
+    Color3f to_color3f() const {
+        return Color3f{x, y, z};
+    }
+
+    Color4f to_color4f() const {
+        return Color4f{x, y, z, 1.0f};
+    }
 
 	//! Konstruktor z pole.
 	/*!
@@ -130,4 +144,6 @@ public:
 	friend bool operator==( const Vector3 & u, const Vector3 & v );
 };
 
+using Vertex3f = Vector3;
+using Normal3f = Vector3;
 #endif

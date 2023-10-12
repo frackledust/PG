@@ -104,57 +104,84 @@ void Raytracer::LoadScene(const std::string file_name)
 	rtcCommitScene(scene_);
 }
 
-bool Raytracer::trace_ray(RTCRay ray) {
-	RTCHit hit;
-	hit.geomID = RTC_INVALID_GEOMETRY_ID;
-	hit.primID = RTC_INVALID_GEOMETRY_ID;
-	hit.Ng_x = 0.0f; // geometry normal
-	hit.Ng_y = 0.0f;
-	hit.Ng_z = 0.0f;
+// bodové svetlo: n = u*n1 + v*n2 + (1-u-v)*n3
+// color=diff_color*cross(n*l)
+float clamp(float x, float x0 = 0.0f, float x1 = 1.0f){
+    return max(min(x, x1), x0);
+}
 
-	// merge ray and hit structures
-	RTCRayHit ray_hit;
-	ray_hit.ray = ray;
-	ray_hit.hit = hit;
+bool Raytracer::is_visible(const Vector3 x, const Vector3 y){
 
-	// intersect ray with the scene
-	RTCIntersectContext context;
-	rtcInitIntersectContext(&context);
-	rtcIntersect1(scene_, &context, &ray_hit);
+    Vector3 l = y - x;
+    float dist = l.L2Norm();
 
-	if (ray_hit.hit.geomID != RTC_INVALID_GEOMETRY_ID)
-	{
-		// we hit something
-		RTCGeometry geometry = rtcGetGeometry(scene_, ray_hit.hit.geomID);
-		Normal3f normal;
-		// get interpolated normal
-		rtcInterpolate0(geometry, ray_hit.hit.primID, ray_hit.hit.u, ray_hit.hit.v,
-			RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
-		// and texture coordinates
-		Coord2f tex_coord;
-		rtcInterpolate0(geometry, ray_hit.hit.primID, ray_hit.hit.u, ray_hit.hit.v,
-			RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tex_coord.u, 2);
+    l *= 1.0f / dist;
 
-		//printf("HERE normal = (%0.3f, %0.3f, %0.3f)\n", normal.x, normal.y, normal.z);
-		//printf("HERE tex_coord = (%0.3f, %0.3f)\n", tex_coord.u, tex_coord.v);
-		return true;
-	}
+    RTCRay ray(x, l, 0.001f);
+    RTCRayHit ray_hit(ray);
 
-	return false;
+    // intersect ray with the scene
+    RTCIntersectContext context{};
+    rtcInitIntersectContext(&context);
+    rtcIntersect1(scene_, &context, &ray_hit);
 
+    return !ray_hit.has_hit();
 }
 
 Color4f Raytracer::get_pixel(const int x, const int y, const float t)
 {
-	// TODO generate primary ray and perform ray cast on the scene
 	RTCRay ray = this->camera_.GenerateRay((float)x, (float)y);
-	bool result = trace_ray(ray);
+    RTCRayHit ray_hit(ray);
 
-	if (result) {
-		return Color4f{ 1.0f, 1.0f, 1.0f, 1.0f };
-	}
+    // intersect ray with the scene
+    RTCIntersectContext context{};
+    rtcInitIntersectContext(&context);
+    rtcIntersect1(scene_, &context, &ray_hit);
+
+    if (ray_hit.has_hit())
+    {
+        RTCGeometry geometry = rtcGetGeometry(scene_, ray_hit.hit.geomID);
+        auto* material = (Material*) rtcGetGeometryUserData(geometry);
+        assert(material);
+
+        Normal3f normal;
+        rtcInterpolate0(geometry, ray_hit.hit.primID, ray_hit.hit.u, ray_hit.hit.v,
+                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
+
+        Coord2f tex_coord{};
+        rtcInterpolate0(geometry, ray_hit.hit.primID, ray_hit.hit.u, ray_hit.hit.v,
+                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tex_coord.u, 2);
+
+
+        Color3f diffuse_color = material->diffuse.to_color3f();
+        Texture * diffuse_texture = material->get_texture(Material::kDiffuseMapSlot);
+        if(diffuse_texture){
+            Color3f diffuse_textel = diffuse_texture->get_texel(tex_coord.u, 1 - tex_coord.v);
+            diffuse_color = diffuse_textel;
+        }
+
+        Vector3 diffuse_color_v = Vector3(diffuse_color);
+        const Vector3 omni_light_position{100, 200, 1000};
+        const Vector3 hit_point = ray_hit.get_hit_point();
+
+        Vector3 d{ray.org_x, ray.org_y, ray.org_z};
+        if(normal.DotProduct(d) > 0){
+            normal = normal*(-1.0f);
+        }
+
+        Vector3 l = omni_light_position - hit_point;
+        normal.Normalize();
+        l.Normalize();
+        Vector3 output = diffuse_color_v  * clamp(fabsf(normal.DotProduct(l)));
+
+        if(is_visible(hit_point, omni_light_position)){
+            return output.to_color4f();
+        }
+        return Color4f{ 1.0f, 1.0f, 1.0f, 0.0f };
+    }
+
 	//r g b a
-	return Color4f{ 0.0f, 1.0f, 1.0f, 1.0f };
+	return Color4f{ 0.0f, 1.0f, 1.0f, 0.2f };
 }
 
 int Raytracer::Ui()

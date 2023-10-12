@@ -13,7 +13,7 @@
 class Raytracer : public SimpleGuiDX11
 {
 public:
-	Raytracer( const int width, const int height, 
+	Raytracer( const int width, const int height,
 		const float fov_y, const Vector3 view_from, const Vector3 view_at,
 		const char * config = "threads=0,verbose=3" );
 	~Raytracer();
@@ -23,8 +23,6 @@ public:
 	int ReleaseDeviceAndScene();
 
 	void LoadScene( const std::string file_name );
-
-	bool trace_ray(RTCRay ray);
 
 	Color4f get_pixel( const int x, const int y, const float t = 0.0f ) override;
 
@@ -37,4 +35,6 @@ private:
 	RTCDevice device_;
 	RTCScene scene_;
 	Camera camera_;
+
+    bool is_visible(const Vector3 x, const Vector3 y);
 };

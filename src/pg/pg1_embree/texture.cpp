@@ -96,6 +96,7 @@ Color3f Texture::get_texel( const float u, const float v ) const
 	// nearest neighbor interpolation
 	const int x = max( 0, min( width_ - 1, int( u * width_ ) ) );
 	const int y = max( 0, min( height_ - 1, int( v * height_ ) ) );
+    // TODO: Bilineární interpolace
 	
 	return get_texel( x, y );
 }
