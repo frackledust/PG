@@ -2,7 +2,7 @@
 #include "raytracer.h"
 #include "objloader.h"
 #include "tutorials.h"
-#include "utils.h"
+#include "ray.h"
 
 Raytracer::Raytracer(const int width, const int height,
 	const float fov_y, const Vector3 view_from, const Vector3 view_at,
@@ -117,67 +117,35 @@ bool Raytracer::is_visible(const Vector3 x, const Vector3 y){
 
     l *= 1.0f / dist;
 
-    RTCRay ray(x, l, 0.001f);
-    RTCRayHit ray_hit(ray);
-
-    // intersect ray with the scene
-    RTCIntersectContext context{};
-    rtcInitIntersectContext(&context);
-    rtcIntersect1(scene_, &context, &ray_hit);
-
-    return !ray_hit.has_hit();
+    Ray ray(x, l, 0.001f);
+    ray.intersect(scene_);
+    return !ray.has_hit();
 }
 
-RTCRay Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir) {
-    return {origin, dir, 0.001f};
+Ray Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir) {
+    return Ray{origin, dir, 0.001f};
 }
 
-Vector3 Raytracer::trace(RTCRay ray, const int depth = 0, const int max_depth = 3){
-    if(depth >= max_depth) return Vector3();
+Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 3) {
+    if(depth >= max_depth) return {0, 0, 0};
 
-    RTCRayHit ray_hit(ray);
+    ray.intersect(scene_);
 
-    // intersect ray with the scene
-    RTCIntersectContext context{};
-    rtcInitIntersectContext(&context);
-    rtcIntersect1(scene_, &context, &ray_hit);
-
-    if (ray_hit.has_hit())
+    if (ray.has_hit())
     {
-        RTCGeometry geometry = rtcGetGeometry(scene_, ray_hit.hit.geomID);
+        RTCGeometry geometry = ray.get_geometry();
         auto* material = (Material*) rtcGetGeometryUserData(geometry);
         assert(material);
 
-        Normal3f normal;
-        rtcInterpolate0(geometry, ray_hit.hit.primID, ray_hit.hit.u, ray_hit.hit.v,
-                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
+        Normal3f normal = ray.get_normal();
+        Coord2f tex_coord = ray.get_texture_coord();
 
-        Coord2f tex_coord{};
-        rtcInterpolate0(geometry, ray_hit.hit.primID, ray_hit.hit.u, ray_hit.hit.v,
-                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tex_coord.u, 2);
+        auto diffuse_color_v = Vector3(material->get_diffuse_color(tex_coord));
+        auto specular_color_v = Vector3(material->get_specular_color(tex_coord));
 
-
-        Color3f diffuse_color = Color3f(material->diffuse);
-        Color3f specular_color = Color3f(material->specular);
-        Texture * diffuse_texture = material->get_texture(Material::kDiffuseMapSlot);
-        Texture * specular_texture = material->get_texture(Material::kSpecularMapSlot);
-        if(diffuse_texture){
-            Color3f diffuse_texel = diffuse_texture->get_texel(tex_coord.u, 1 - tex_coord.v);
-            diffuse_color = diffuse_texel;
-        }
-
-//        if(specular_texture){
-//            Color3f specular_texel = specular_texture->get_texel(tex_coord.u, 1 - tex_coord.v);
-//            specular_color = specular_texel;
-//        }
-
-        Vector3 diffuse_color_v = Vector3(diffuse_color);
-        Vector3 specular_color_v = Vector3(specular_color);
-//        const Vector3 omni_light_position{200, -500, 100};
         const Vector3 omni_light_position{100, 0, 130};
-        const Vector3 hit_point = ray_hit.get_hit_point();
-
-        Vector3 d{ray_hit.ray.dir_x, ray_hit.ray.dir_y, ray_hit.ray.dir_z};
+        const Vector3 hit_point = ray.get_hit_point();
+        const Vector3 d = ray.get_direction();
         if(d.DotProduct(normal) > 0.0f){
             normal = normal*(-1.0f);
         }
@@ -186,33 +154,31 @@ Vector3 Raytracer::trace(RTCRay ray, const int depth = 0, const int max_depth = 
         normal.Normalize();
         l.Normalize();
 
-        Vector3 output;
+        Vector3 output_color;
 
         //Phong
-        output += material->ambient;
+        output_color += material->ambient;
 
         if(is_visible(hit_point, omni_light_position)){
-            // TODO: fix
-            output += diffuse_color_v * fabsf(normal.DotProduct(l));
+            output_color += diffuse_color_v * fabsf(normal.DotProduct(l));
             Vector3 l_r = 2 * l.DotProduct(normal) * normal - l;
             l_r.Normalize();
 
-            RTCRay secondary_ray = make_secondary_ray(hit_point, l_r);
+            Ray secondary_ray = make_secondary_ray(hit_point, l_r);
 
             Vector3 L_i = trace(secondary_ray, depth + 1);
-            output += L_i * specular_color_v * powf(clamp(-l_r.DotProduct(d)), material->shininess);
+            output_color += L_i * specular_color_v * powf(clamp(-l_r.DotProduct(d)), material->shininess);
         }
 
-        return output;
+        return output_color;
     }
 
-    //r g b a
-    return {};
+    return {0, 0, 0};
 }
 
 Color4f Raytracer::get_pixel(const int x, const int y, const float t)
 {
-	RTCRay ray = this->camera_.GenerateRay((float)x, (float)y);
+    Ray ray(this->camera_.GenerateRay((float)x, (float)y));
     Vector3 result = trace(ray, 0);
     return static_cast<Color4f>(result);
 }

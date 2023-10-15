@@ -19,12 +19,7 @@ struct RTC_ALIGN( 16 ) Color4f
     Color4f(float r, float g, float b, float a) : r(r), g(g), b(b), a(a) {}
     explicit Color4f(Color3f color, float a=1) : r(color.r), g(color.g), b(color.b), a(1.0f) {}
 
-    static float compress(const float u,  float gamma){
-        if (u <= 0) return 0;
-        if (u == 1) return 1.0f;
-        if(u <= 0.0031308f) return 12.92f * u;
-        return (1.055f * powf(u, 1 / gamma)) - 0.055;
-    }
+    static float compress(const float u,  float gamma);
 
     Color4f compress(float gamma = 2.4f){
         r = compress(r, gamma);
@@ -33,12 +28,7 @@ struct RTC_ALIGN( 16 ) Color4f
         return *this;
     }
 
-    static float expand(const float u, const float gamma){
-        if (u <= 0) return 0.0f;
-        if (u >= 1) return 1.0f;
-        if(u <= 0.04045) return u / 12.92f;
-        return powf((u + 0.055f) / 1.055f, gamma);
-    }
+    static float expand(const float u, float gamma);
 
     Color4f expand(float gamma = 2.4f){
         r = expand(r, gamma);

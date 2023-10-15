@@ -3,6 +3,7 @@
 
 #include "vector3.h"
 #include "matrix3x3.h"
+#include "ray.h"
 
 /*! \class Camera
 \brief A simple pin-hole camera.
@@ -20,7 +21,7 @@ public:
 		const Vector3 view_from, const Vector3 view_at );
 
 	/* generate primary ray, top-left pixel image coordinates (xi, yi) are in the range <0, 1) x <0, 1) */
-	RTCRay GenerateRay( const float xi, const float yi ) const;
+	Ray GenerateRay( const float xi, const float yi ) const;
 
 private:
 	int width_{ 640 }; // image width (px)

@@ -110,6 +110,9 @@ public:
 	static const char kNormalMapSlot; /*!< Èíslo slotu normálové textury. */
 	static const char kOpacityMapSlot; /*!< Èíslo slotu transparentní textury. */
 
+    Color3f get_diffuse_color(const Coord2f &tex_coord) const;
+    Color3f get_specular_color(const Coord2f &tex_coord) const;
+
 private:
 	Texture * textures_[NO_TEXTURES]; /*!< Pole ukazatelù na textury. */
 	/*

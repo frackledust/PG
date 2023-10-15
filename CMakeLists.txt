@@ -28,12 +28,16 @@ set(IMGUI
         src/libs/imgui/imgui_impl_opengl3.cpp
         src/libs/imgui/imgui_impl_win32.cpp)
 
+set(OTHER
+        src/pg/pg1_embree/ray.h)
+
 set(GL13W src/libs/gl3w/gl3w.c)
 file(GLOB SOURCES "src/pg/pg1_embree/*.cpp")
 
 add_executable(pg1
         ${IMGUI}
         ${GL13W}
+        ${OTHER}
         ${SOURCES})
 
 target_link_libraries(pg1 d3d11 glfw3 embree3 FreeImaged d3d11 d3d12 d3dcompiler)

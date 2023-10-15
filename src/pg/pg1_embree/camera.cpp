@@ -26,31 +26,13 @@ Camera::Camera(const int width, const int height, const float fov_y,
 	M_c_w_ = Matrix3x3(x_c, y_c, z_c);
 }
 
-RTCRay Camera::GenerateRay(const float x_i, const float y_i) const
+Ray Camera::GenerateRay(const float x_i, const float y_i) const
 {
-	RTCRay ray = RTCRay();
-
 	// TODO fill in ray structure and compute ray direction
 	Vector3 d_c = Vector3(x_i - this->width_ * 0.5f, this->height_ * 0.5f - y_i, this->f_y_ * -1);
 	d_c.Normalize();
 	Vector3 d_w = this->M_c_w_ * d_c;
 	d_w.Normalize();
 
-	ray.org_x = this->view_from_.x; // ray origin
-	ray.org_y = this->view_from_.y;
-	ray.org_z = this->view_from_.z;
-	ray.tnear = FLT_MIN; // start of ray segment
-
-	ray.dir_x = d_w.x; // ray direction
-	ray.dir_y = d_w.y;
-	ray.dir_z = d_w.z;
-	ray.time = 0.0f;
-
-	ray.tfar = FLT_MAX; // end of ray segment (set to hit distance)
-
-	ray.mask = 0; // can be used to mask out some geometries for some rays
-	ray.id = 0; // identify a ray inside a callback function
-	ray.flags = 0; // reserved
-
-	return ray;
+	return {this->view_from_, d_w, FLT_MIN};
 }
