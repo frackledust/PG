@@ -3,6 +3,7 @@
 #include "surface.h"
 #include "camera.h"
 #include "ray.h"
+#include "SphereMap.h"
 
 /*! \class Raytracer
 \brief General ray tracer class.
@@ -29,9 +30,12 @@ public:
 
 	int Ui();
 
+    void LoadBackground();
+
 private:
 	std::vector<Surface *> surfaces_;
 	std::vector<Material *> materials_;
+    std::unique_ptr<SphereMap> background_;
 
 	RTCDevice device_;
 	RTCScene scene_;

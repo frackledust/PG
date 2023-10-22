@@ -151,6 +151,18 @@ int LoadMTL( const char * file_name, const char * path, std::vector<Material *> 
 				{
 					sscanf( tmp, "%*s %f", &material->shininess );
 				}
+                if ( strstr( tmp, "Ni" ) == tmp ) // index of refaction
+                {
+                    sscanf( tmp, "%*s %f", &material->ior );
+                }
+                if ( strstr( tmp, "Tf" ) == tmp ) // emission color of the material
+                {
+                    sscanf(tmp, "%*s %f %f %f", &material->attenuation.x, &material->attenuation.y, &material->attenuation.z );
+                }
+                if ( strstr( tmp, "illum" ) == tmp ) // index of refaction
+                {
+                    sscanf( tmp, "%*s %d", &material->shader_id);
+                }
 				if ( strstr( tmp, "map_Kd" ) == tmp ) // diffuse map
 				{
 					sscanf( tmp, "%*s %s", image_file_name );

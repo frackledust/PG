@@ -13,10 +13,11 @@ newmtl black_plastic
         
 newmtl green_plastic_transparent
 	Ns 32
+	Ni 1.46
 	d 1
 	Tr 0
-	Tf 1 1 1
-	illum 2
+	Tf 1.0 0.1 1.0
+	illum 3
 	Ka 0.03 0.03 0.03
 	Kd 0.85 1.0 0.01
 	Ks 1.0 1.0 1.0

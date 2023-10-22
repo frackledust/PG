@@ -26,10 +26,8 @@ set(IMGUI
         src/libs/imgui/imgui_impl_dx12.cpp
         src/libs/imgui/imgui_impl_glfw.cpp
         src/libs/imgui/imgui_impl_opengl3.cpp
-        src/libs/imgui/imgui_impl_win32.cpp)
-
-set(OTHER
-        src/pg/pg1_embree/ray.h)
+        src/libs/imgui/imgui_impl_win32.cpp
+)
 
 set(GL13W src/libs/gl3w/gl3w.c)
 file(GLOB SOURCES "src/pg/pg1_embree/*.cpp")

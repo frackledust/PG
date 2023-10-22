@@ -33,7 +33,7 @@ std::shared_ptr<RTCScene> scene;
         ray_hit.ray = _ray;
     }
 
-    Ray(Vector3 org, Vector3 dir, float _tnear){
+    Ray(Vector3 org, Vector3 dir, float _tnear, float time = 0.0f){
         ray_hit.ray.org_x = org.x;
         ray_hit.ray.org_y = org.y;
         ray_hit.ray.org_z = org.z;

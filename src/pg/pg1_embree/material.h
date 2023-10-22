@@ -4,6 +4,15 @@
 #include "vector3.h"
 #include "texture.h"
 
+
+enum ShaderID{
+    normal,
+    mirror,
+    lambert,
+    phong,
+    glass
+};
+
 /*! \def NO_TEXTURES
 \brief Maximální poèet textur pøiøazených materiálu.
 */
@@ -99,11 +108,14 @@ public:
 	Vector3 specular; /*!< RGB barva odrazu \f$\left<0, 1\right>^3\f$. */
 
 	Vector3 emission; /*!< RGB barva emise \f$\left<0, 1\right>^3\f$. */
+	Vector3 attenuation;
 
 	float shininess; /*!< Koeficient lesklosti (\f$\ge 0\f$). Èím je hodnota vìtší, tím se jeví povrch lesklejší. */
 
 	float reflectivity; /*!< Koeficient odrazivosti. */
 	float ior; /*!< Index lomu. */
+// TODO: make enum
+    int shader_id = 0;
 
 	static const char kDiffuseMapSlot; /*!< Èíslo slotu difuzní textury. */
 	static const char kSpecularMapSlot; /*!< Èíslo slotu spekulární textury. */

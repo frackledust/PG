@@ -3,6 +3,7 @@
 #include "objloader.h"
 #include "tutorials.h"
 #include "ray.h"
+#include "SphereMap.h"
 
 Raytracer::Raytracer(const int width, const int height,
 	const float fov_y, const Vector3 view_from, const Vector3 view_at,
@@ -112,6 +113,7 @@ float clamp(float x, float x0 = 0.0f, float x1 = 1.0f){
 
 bool Raytracer::is_visible(const Vector3 x, const Vector3 y){
 
+    // TODO
     Vector3 l = y - x;
     float dist = l.L2Norm();
 
@@ -164,6 +166,7 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 3)
             Vector3 l_r = 2 * l.DotProduct(normal) * normal - l;
             l_r.Normalize();
 
+            //TODO: rewrite l_r to r
             Ray secondary_ray = make_secondary_ray(hit_point, l_r);
 
             Vector3 L_i = trace(secondary_ray, depth + 1);
@@ -173,7 +176,9 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 3)
         return output_color;
     }
 
-    return {0, 0, 0};
+    Vector3 ray_dir = ray.get_direction();
+    Color3f bg_color = background_->texel(ray_dir.x, ray_dir.y, ray_dir.z);
+    return Vector3(bg_color);
 }
 
 Color4f Raytracer::get_pixel(const int x, const int y, const float t)
@@ -222,4 +227,9 @@ int Raytracer::Ui()
 	}*/
 
 	return 0;
+}
+
+//// polyhaven.com/lebombo - p?i jpg expanze, pokud hdr tak exanze
+void Raytracer::LoadBackground() {
+    background_ = std::make_unique<SphereMap>("data/sky.hdr");
 }
