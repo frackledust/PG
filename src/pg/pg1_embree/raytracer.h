@@ -31,7 +31,6 @@ public:
 	int Ui();
 
     void LoadBackground();
-
 private:
 	std::vector<Surface *> surfaces_;
 	std::vector<Material *> materials_;

@@ -128,7 +128,7 @@ Ray Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir) {
     return Ray{origin, dir, 0.001f};
 }
 
-Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 3) {
+Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 10) {
     if(depth >= max_depth) return {0, 0, 0};
 
     ray.intersect(scene_);
@@ -144,6 +144,9 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 3)
 
         auto diffuse_color_v = Vector3(material->get_diffuse_color(tex_coord));
         auto specular_color_v = Vector3(material->get_specular_color(tex_coord));
+        // FO + (1 - F0) (1 - cos fi)na5
+        // cost normála * v vector
+        // z infexu lomu n
 
         const Vector3 omni_light_position{100, 0, 130};
         const Vector3 hit_point = ray.get_hit_point();
@@ -166,11 +169,14 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 3)
             Vector3 l_r = 2 * l.DotProduct(normal) * normal - l;
             l_r.Normalize();
 
-            //TODO: rewrite l_r to r
-            Ray secondary_ray = make_secondary_ray(hit_point, l_r);
+            //reflect funkce
+            Vector3 d_r = d - (2 * d.DotProduct(normal) * normal);
+            d_r.Normalize();
+            Ray secondary_ray = make_secondary_ray(hit_point, d_r);
 
             Vector3 L_i = trace(secondary_ray, depth + 1);
-            output_color += L_i * specular_color_v * powf(clamp(-l_r.DotProduct(d)), material->shininess);
+            float phong_spec = powf(clamp(l_r.DotProduct(-d)), material->shininess);
+            output_color += L_i * specular_color_v;
         }
 
         return output_color;
@@ -201,17 +207,27 @@ int Raytracer::Ui()
 	ImGui::Separator();
 	ImGui::Checkbox("Vsync", &vsync_);
 
-	//ImGui::Checkbox( "Demo Window", &show_demo_window ); // Edit bools storing our window open/close state
-	//ImGui::Checkbox( "Another Window", &show_another_window );
-
 	ImGui::SliderFloat("float", &f, 0.0f, 1.0f); // Edit 1 float using a slider from 0.0f to 1.0f    
 	//ImGui::ColorEdit3( "clear color", ( float* )&clear_color ); // Edit 3 floats representing a color
 
 	// Buttons return true when clicked (most widgets return true when edited/activated)
-	if (ImGui::Button("Button"))
-		counter++;
-	ImGui::SameLine();
-	ImGui::Text("counter = %d", counter);
+	if (ImGui::Button("Left"))
+        camera_.Rotate(0.1f);
+
+    ImGui::SameLine();
+    if (ImGui::Button("Right"))
+        camera_.Rotate(-0.1f);
+
+    ImGui::SameLine();
+    if (ImGui::Button("Front"))
+        camera_.Move(-20);
+
+    ImGui::SameLine();
+    if (ImGui::Button("Back"))
+        camera_.Move(20);
+
+    ImGui::NewLine();
+	ImGui::Text("camera: %.1f %.1f", camera_.GetViewFrom().x, camera_.GetViewFrom().y);
 
 	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 	ImGui::End();
@@ -229,7 +245,6 @@ int Raytracer::Ui()
 	return 0;
 }
 
-//// polyhaven.com/lebombo - p?i jpg expanze, pokud hdr tak exanze
 void Raytracer::LoadBackground() {
-    background_ = std::make_unique<SphereMap>("data/sky.hdr");
+    background_ = std::make_unique<SphereMap>("data/studio.hdr");
 }

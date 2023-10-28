@@ -20,6 +20,14 @@ public:
 	Camera( const int width, const int height, const float fov_y,
 		const Vector3 view_from, const Vector3 view_at );
 
+    void SetTransformationMatrix();
+
+    Vector3 GetViewFrom() const;
+
+    void Rotate(const float angle);
+
+    void Move(const float distance);
+
 	/* generate primary ray, top-left pixel image coordinates (xi, yi) are in the range <0, 1) x <0, 1) */
 	Ray GenerateRay( const float xi, const float yi ) const;
 

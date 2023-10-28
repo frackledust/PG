@@ -13,15 +13,18 @@ Camera::Camera(const int width, const int height, const float fov_y,
 	view_at_ = view_at;
 
 	f_y_ = (float)height / (2 * tanf(fov_y / 2));
+    SetTransformationMatrix();
+}
 
-	Vector3 z_c = view_from - view_at;
-	z_c.Normalize();
-	Vector3 x_c = up_.CrossProduct(z_c);
-	x_c.Normalize();
-	Vector3 y_c = z_c.CrossProduct(x_c);
-	y_c.Normalize();
+void Camera::SetTransformationMatrix() {
+    Vector3 z_c = view_from_ - view_at_;
+    z_c.Normalize();
+    Vector3 x_c = up_.CrossProduct(z_c);
+    x_c.Normalize();
+    Vector3 y_c = z_c.CrossProduct(x_c);
+    y_c.Normalize();
 
-	M_c_w_ = Matrix3x3(x_c, y_c, z_c);
+    M_c_w_ = Matrix3x3(x_c, y_c, z_c);
 }
 
 Ray Camera::GenerateRay(const float x_i, const float y_i) const
@@ -33,4 +36,34 @@ Ray Camera::GenerateRay(const float x_i, const float y_i) const
 
     Ray r = Ray(this->view_from_, d_w, FLT_MIN, IOR_AIR);
 	return r;
+}
+
+void Camera::Rotate(const float angle) {
+    // rotate camera around its target (view_at_) by angle
+    auto translated = view_from_ - view_at_;
+
+    //perform rotation
+    translated.x = translated.x * cos(angle) - translated.y * sin(angle);
+    translated.y = translated.x * sin(angle) + translated.y * cos(angle);
+
+    //translate back
+    translated.x += view_at_.x;
+    translated.y += view_at_.y;
+    translated.z = view_from_.z;
+
+    view_from_ = translated;
+    SetTransformationMatrix();
+}
+
+Vector3 Camera::GetViewFrom() const {
+    return view_from_;
+}
+
+void Camera::Move(const float distance) {
+    // move camera by distance along its view direction
+    auto translated = view_from_ - view_at_;
+    translated.Normalize();
+    translated *= distance;
+    view_from_ += translated;
+    SetTransformationMatrix();
 }
