@@ -6,11 +6,11 @@
 
 
 enum ShaderID{
-    normal,
-    mirror,
-    lambert,
-    phong,
-    glass
+    Normal = 0,
+    Mirror = 1,
+    Lambert = 2,
+    Phong = 3,
+    Glass = 4,
 };
 
 /*! \def NO_TEXTURES

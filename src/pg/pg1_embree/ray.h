@@ -80,6 +80,8 @@ std::shared_ptr<RTCScene> scene;
     Coord2f get_texture_coord();
 
     Vector3 get_direction() const;
+
+    void set_tfar(float tfar_);
 };
 
 

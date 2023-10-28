@@ -37,4 +37,8 @@ Vector3 Ray::get_direction() const {
     return Vector3(ray_hit.ray.dir_x, ray_hit.ray.dir_y, ray_hit.ray.dir_z);
 }
 
+void Ray::set_tfar(float tfar_) {
+    ray_hit.ray.tfar = tfar_;
+}
+
 

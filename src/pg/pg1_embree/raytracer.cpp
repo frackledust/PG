@@ -111,15 +111,17 @@ float clamp(float x, float x0 = 0.0f, float x1 = 1.0f){
     return max(min(x, x1), x0);
 }
 
-bool Raytracer::is_visible(const Vector3 x, const Vector3 y){
+bool Raytracer::is_visible(const Vector3 hit_point, const Vector3 light_point){
 
-    // TODO
-    Vector3 l = y - x;
+    // vector to light
+    Vector3 l = light_point - hit_point;
     float dist = l.L2Norm();
 
     l *= 1.0f / dist;
 
-    Ray ray(x, l, 0.001f);
+    // to avoid self-shadowing
+    Ray ray(hit_point, l, 0.001f);
+    ray.set_tfar(dist);
     ray.intersect(scene_);
     return !ray.has_hit();
 }
@@ -128,7 +130,7 @@ Ray Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir) {
     return Ray{origin, dir, 0.001f};
 }
 
-Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 10) {
+Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5) {
     if(depth >= max_depth) return {0, 0, 0};
 
     ray.intersect(scene_);
@@ -144,14 +146,11 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 10
 
         auto diffuse_color_v = Vector3(material->get_diffuse_color(tex_coord));
         auto specular_color_v = Vector3(material->get_specular_color(tex_coord));
-        // FO + (1 - F0) (1 - cos fi)na5
-        // cost normála * v vector
-        // z infexu lomu n
 
         const Vector3 omni_light_position{100, 0, 130};
         const Vector3 hit_point = ray.get_hit_point();
         const Vector3 d = ray.get_direction();
-        if(d.DotProduct(normal) > 0.0f){
+        if(normal.DotProduct(d) > 0.0f){
             normal = normal*(-1.0f);
         }
 
@@ -159,32 +158,46 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 10
         normal.Normalize();
         l.Normalize();
 
+        Vector3 v = -d;
+        v.Normalize();
+
         Vector3 output_color;
 
-        //Phong
-        output_color += material->ambient;
-
+        auto shaderId = static_cast<ShaderID>(material->shader_id);
+        if(shaderId == ShaderID::Phong){
+            return get_color_phong(hit_point, omni_light_position,
+                                   normal, v, l,
+                                   diffuse_color_v, specular_color_v, depth, material);
+        }
+        
+        
         if(is_visible(hit_point, omni_light_position)){
-            output_color += diffuse_color_v * fabsf(normal.DotProduct(l));
-            Vector3 l_r = 2 * l.DotProduct(normal) * normal - l;
-            l_r.Normalize();
+            //whitted
+            float S = fabsf(normal.DotProduct(l));
+            if(shaderId == ShaderID::Mirror){
+                S = 0.0f;
+            }
 
-            //reflect funkce
-            Vector3 d_r = d - (2 * d.DotProduct(normal) * normal);
-            d_r.Normalize();
-            Ray secondary_ray = make_secondary_ray(hit_point, d_r);
+            // Secondary ray
+            Vector3 v_r = v.Reflect(normal);
+            v_r.Normalize();
+            Ray secondary_ray = make_secondary_ray(hit_point, v_r);
+            Vector3 L_i = trace(secondary_ray, depth + 1, max_depth);
 
-            Vector3 L_i = trace(secondary_ray, depth + 1);
-            float phong_spec = powf(clamp(l_r.DotProduct(-d)), material->shininess);
-            output_color += L_i * specular_color_v;
+            //Output color
+            output_color = (material->ambient + S * diffuse_color_v + L_i * specular_color_v);
+        }
+        else{
+            output_color = material->ambient;
         }
 
         return output_color;
     }
 
+    // ray did not hit any surface
     Vector3 ray_dir = ray.get_direction();
     Color3f bg_color = background_->texel(ray_dir.x, ray_dir.y, ray_dir.z);
-    return Vector3(bg_color);
+    return {bg_color};
 }
 
 Color4f Raytracer::get_pixel(const int x, const int y, const float t)
@@ -247,4 +260,36 @@ int Raytracer::Ui()
 
 void Raytracer::LoadBackground() {
     background_ = std::make_unique<SphereMap>("data/studio.hdr");
+}
+
+Vector3 Raytracer::get_color_phong(Vector3 hit_point, Vector3 omni_light_position,
+                                   Vector3 normal, Vector3 v, Vector3 l,
+                                   Vector3 diffuse_color_v, Vector3 specular_color_v,
+                                   int depth, Material* material) {
+    
+    
+    Vector3 v_r = v.Reflect(normal);
+    v_r.Normalize();
+    
+    Ray secondary_ray = make_secondary_ray(hit_point, v_r);
+    Vector3 c_phong = material->ambient;
+    
+    if(is_visible(hit_point, omni_light_position)){
+        Vector3 l_r = l.Reflect(normal);
+        l_r.Normalize();
+        float diff = fabsf(normal.DotProduct(l));
+        float phong_spec = powf(clamp(l_r.DotProduct(v)), material->shininess);
+        c_phong += (diff * diffuse_color_v + phong_spec * specular_color_v);
+    }
+    
+    float cos_fi = clamp(v_r.DotProduct(l));
+    float n1 = material->ior;
+    float n2 = IOR_AIR;
+    float F0 = powf((n1 - n2) / (n1 + n2), 2);
+    float R = F0 + (1 - F0) * powf(1 - cos_fi, 5);
+
+    // Secondary ray
+    Vector3 c_ref = trace(secondary_ray, depth + 1, depth + 2);
+
+    return c_phong + c_ref * R;
 }

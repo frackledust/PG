@@ -159,7 +159,7 @@ int LoadMTL( const char * file_name, const char * path, std::vector<Material *> 
                 {
                     sscanf(tmp, "%*s %f %f %f", &material->attenuation.x, &material->attenuation.y, &material->attenuation.z );
                 }
-                if ( strstr( tmp, "illum" ) == tmp ) // index of refaction
+                if ( strstr( tmp, "illum" ) == tmp ) // shader id
                 {
                     sscanf( tmp, "%*s %d", &material->shader_id);
                 }

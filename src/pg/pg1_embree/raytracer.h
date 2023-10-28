@@ -40,9 +40,12 @@ private:
 	RTCScene scene_;
 	Camera camera_;
 
-    bool is_visible(Vector3 x, Vector3 y);
+    bool is_visible(Vector3 hit_point, Vector3 light_point);
 
     Vector3 trace(Ray &ray, const int depth, int max_depth);
 
     static Ray make_secondary_ray(const Vector3 &origin, const Vector3 &dir);
+
+    Vector3 get_color_phong(Vector3 hit_point, Vector3 omni_light_position, Vector3 normal, Vector3 v, Vector3 l,
+                            Vector3 diffuse_color_v, Vector3 specular_color_v, int depth, Material *material);
 };

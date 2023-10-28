@@ -165,3 +165,11 @@ bool operator==( const Vector3 & u, const Vector3 & v )
 {
 	return u.x == v.x && u.y == v.y && u.z == v.z;
 }
+
+Vector3 Vector3::Reflect(Vector3 normal, bool to_hit_point) const {
+    Vector3 vec = *this;
+    if (to_hit_point) {
+        vec = -vec;
+    }
+    return 2 * vec.DotProduct(normal) * normal - vec;
+}

@@ -1,29 +1,39 @@
 # 3ds Max Wavefront OBJ Exporter v0.97b - (c)2007 guruware
 # File Created: 23.10.2016 13:06:49
+# Ka - ambient color of the material
+# Kd - diffuse color of the material
+# Ks - specular color of the material
+# Ke - emission color of the material
+# Ns - specular coefficient / shininess
+# Ni - index of refaction / ior
+# Tf - transmission filter / attenuation
+# illum - shader type (Normal = 0, Mirror = 1, Lambert = 2, Phong = 3, Glass = 4)
 
 newmtl black_plastic
-	Ns 32
-	d 1
-	Tr 0
-	Tf 1 1 1
-	illum 2
-	Ka 0.03 0.03 0.03
-	Kd 0.3 0.3 0.3
-	Ks 0.2 0.2 0.2
-        
-newmtl green_plastic_transparent
 	Ns 32
 	Ni 1.46
 	d 1
 	Tr 0
-	Tf 1.0 0.1 1.0
+	Tf 1 1 1
 	illum 3
+	Ka 0.01 0.01 0.01
+	Kd 0.1 0.1 0.1
+	Ks 0.2 0.2 0.2
+        
+newmtl green_plastic_transparent
+	Ns 32
+	Ni 10
+	d 1
+	Tr 0
+	Tf 1.0 0.1 1.0
+	illum 4
 	Ka 0.03 0.03 0.03
 	Kd 0.85 1.0 0.01
 	Ks 0.2 0.2 0.2
 
 newmtl white_plastic
 	Ns 32
+    Ni 1.46
 	d 1
 	Tr 0
 	Tf 1 1 1
@@ -34,6 +44,7 @@ newmtl white_plastic
           
 newmtl white_plastic_4150p04
 	Ns 32
+    Ni 1.46
 	d 1
 	Tr 0
 	Tf 1 1 1
@@ -45,6 +56,7 @@ newmtl white_plastic_4150p04
 
 newmtl white_plastic_3069bp13
 	Ns 32
+    Ni 1.46
 	d 1
 	Tr 0
 	Tf 1 1 1
