@@ -89,16 +89,26 @@ Color3f Texture::get_texel( const int x, const int y ) const
 	}
 }
 
-Color3f Texture::get_texel( const float u, const float v ) const
-{
-	//assert( ( u >= 0.0f && u <= 1.0f ) && ( v >= 0.0f && v <= 1.0f ) );	
-	
-	// nearest neighbor interpolation
-	const int x = max( 0, min( width_ - 1, int( u * width_ ) ) );
-	const int y = max( 0, min( height_ - 1, int( v * height_ ) ) );
-    // TODO: Bilineární interpolace
-	
-	return get_texel( x, y );
+Color3f Texture::get_texel( const float u, const float v ) const {
+    //assert( ( u >= 0.0f && u <= 1.0f ) && ( v >= 0.0f && v <= 1.0f ) );
+    // nearest neighbor interpolation
+    const int x = max(0, min(width_ - 1, int(u * width_)));
+    const int y = max(0, min(height_ - 1, int(v * height_)));
+    // return get_texel( x, y );
+
+    // TODO: Biliniar interpolation
+    auto c1 = get_texel(x, y);
+    auto c2 = get_texel(x + 1, y);
+    auto c3 = get_texel(x, y + 1);
+    auto c4 = get_texel(x + 1, y + 1);
+
+    float dx = (u * width_) - x;
+    float dy = (v * height_) - y;
+
+    auto c12 = c1 * (1 - dx) + c2 * dx;
+    auto c34 = c3 * (1 - dx) + c4 * dx;
+    auto c = c12 * (1 - dy) + c34 * dy;
+    return c;
 }
 
 int Texture::width() const

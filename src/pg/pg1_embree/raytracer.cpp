@@ -216,7 +216,6 @@ Color4f Raytracer::get_pixel(const int x, const int y, const float t)
 int Raytracer::Ui()
 {
 	static float f = 0.0f;
-	static int counter = 0;
 
 	// Use a Begin/End pair to created a named window
 	ImGui::Begin("Ray Tracer Params");
@@ -231,11 +230,11 @@ int Raytracer::Ui()
 
 	// Buttons return true when clicked (most widgets return true when edited/activated)
 	if (ImGui::Button("Left"))
-        camera_.Rotate(0.1f);
+        camera_.Rotate(-0.1f);
 
     ImGui::SameLine();
     if (ImGui::Button("Right"))
-        camera_.Rotate(-0.1f);
+        camera_.Rotate(0.1f);
 
     ImGui::SameLine();
     if (ImGui::Button("Front"))

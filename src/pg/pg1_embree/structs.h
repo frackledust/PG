@@ -8,6 +8,14 @@ struct Color3f {
     float r = 0, g = 0, b = 0;
     Color3f() = default;
     Color3f(float r, float g, float b): r(r), g(g), b(b) {}
+
+    Color3f operator*(const float &f) const {
+        return {r * f, g * f, b * f};
+    }
+
+    Color3f operator+(const Color3f &c) const {
+        return {r + c.r, g + c.g, b + c.b};
+    }
 };
 
 struct RTC_ALIGN( 16 ) Color4f
