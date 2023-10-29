@@ -130,7 +130,7 @@ Ray Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir) {
     return Ray{origin, dir, 0.001f};
 }
 
-Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5) {
+Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5, float ior_from = IOR_AIR) {
     if(depth >= max_depth) return {0, 0, 0};
 
     ray.intersect(scene_);
@@ -167,7 +167,13 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5)
         if(shaderId == ShaderID::Phong){
             return get_color_phong(hit_point, omni_light_position,
                                    normal, v, l,
-                                   diffuse_color_v, specular_color_v, depth, material);
+                                   diffuse_color_v, specular_color_v, depth, max_depth, material);
+        }
+
+        if(shaderId == ShaderID::Glass){
+            return get_color_glass(hit_point, omni_light_position,
+                           normal, v, l,
+                           diffuse_color_v, specular_color_v, depth, max_depth, material, ior_from);
         }
         
         
@@ -182,7 +188,7 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5)
             Vector3 v_r = v.Reflect(normal);
             v_r.Normalize();
             Ray secondary_ray = make_secondary_ray(hit_point, v_r);
-            Vector3 L_i = trace(secondary_ray, depth + 1, max_depth);
+            Vector3 L_i = trace(secondary_ray, depth + 1, max_depth, material->ior);
 
             //Output color
             output_color = (material->ambient + S * diffuse_color_v + L_i * specular_color_v);
@@ -265,7 +271,7 @@ void Raytracer::LoadBackground() {
 Vector3 Raytracer::get_color_phong(Vector3 hit_point, Vector3 omni_light_position,
                                    Vector3 normal, Vector3 v, Vector3 l,
                                    Vector3 diffuse_color_v, Vector3 specular_color_v,
-                                   int depth, Material* material) {
+                                   int depth, int max_depth, Material* material) {
     
     
     Vector3 v_r = v.Reflect(normal);
@@ -285,11 +291,47 @@ Vector3 Raytracer::get_color_phong(Vector3 hit_point, Vector3 omni_light_positio
     float cos_fi = clamp(v_r.DotProduct(l));
     float n1 = material->ior;
     float n2 = IOR_AIR;
+
     float F0 = powf((n1 - n2) / (n1 + n2), 2);
     float R = F0 + (1 - F0) * powf(1 - cos_fi, 5);
+    float T = 1 - R;
 
-    // Secondary ray
-    Vector3 c_ref = trace(secondary_ray, depth + 1, depth + 2);
-
+    Vector3 c_ref = trace(secondary_ray, depth + 1, max_depth, material->ior);
     return c_phong + c_ref * R;
+}
+
+Vector3 T_b_l(Vector3 mu, float l){
+    Vector3 ret;
+    ret.x = exp((-mu.x) * l);
+    ret.y = exp((-mu.y) * l);
+    ret.z *= exp((-mu.z) * l);
+    return ret;
+}
+
+Vector3 Raytracer::get_color_glass(Vector3 hit_point, Vector3 omni_light_position,
+                                Vector3 normal, Vector3 v, Vector3 l,
+                                Vector3 diffuse_color_v, Vector3 specular_color_v,
+                                int depth, int max_depth, Material* material, float ior_from) {
+
+    Vector3 v_r = v.Reflect(normal);
+    v_r.Normalize();
+
+    float cos_fi = clamp(v_r.DotProduct(normal));
+    float n1 = ior_from;
+    float n2 = material->ior;
+    float F0 = powf((n1 - n2) / (n1 + n2), 2);
+    float R = F0 + (1 - F0) * powf(1 - cos_fi, 5);
+    float T = 1 - R;
+
+    Vector3 v_t = v.Refract(normal, n1, n2);
+    v_t.Normalize();
+    Ray secondary_refr = make_secondary_ray(hit_point, v_t);
+    Vector3 c_refr = trace(secondary_refr, depth + 1, max_depth, material->ior);
+
+    Ray secondary_refl = make_secondary_ray(hit_point, v_r);
+    Vector3 c_refl = trace(secondary_refl, depth + 1, max_depth, material->ior);
+
+    Vector3 greenTint = Vector3(0.0, 1.0, 0.0);
+//    return (c_refl * R + c_refr * T) * T_b_l(material->attenuation, secondary_refr.get_tfar());
+    return c_refl * R + c_refr * T;
 }

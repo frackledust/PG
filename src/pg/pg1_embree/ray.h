@@ -82,6 +82,8 @@ std::shared_ptr<RTCScene> scene;
     Vector3 get_direction() const;
 
     void set_tfar(float tfar_);
+
+    float get_tfar();
 };
 
 

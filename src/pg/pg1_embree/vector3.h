@@ -158,6 +158,8 @@ public:
 	friend bool operator==( const Vector3 & u, const Vector3 & v );
 
     Vector3 Reflect(Vector3 normal, bool to_hit_point = false) const;
+
+    Vector3 Refract(Vector3 normal, float n1, float n2) const;
 };
 
 using Vertex3f = Vector3;

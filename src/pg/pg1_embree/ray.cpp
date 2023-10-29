@@ -41,4 +41,8 @@ void Ray::set_tfar(float tfar_) {
     ray_hit.ray.tfar = tfar_;
 }
 
+float Ray::get_tfar() {
+    return ray_hit.ray.tfar;
+}
+
 
