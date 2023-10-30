@@ -33,7 +33,7 @@ std::shared_ptr<RTCScene> scene;
         ray_hit.ray = _ray;
     }
 
-    Ray(Vector3 org, Vector3 dir, float _tnear, float time = 0.0f){
+    Ray(Vector3 org, Vector3 dir, float _tnear, float time_ = 0.0f){
         ray_hit.ray.org_x = org.x;
         ray_hit.ray.org_y = org.y;
         ray_hit.ray.org_z = org.z;
@@ -42,7 +42,7 @@ std::shared_ptr<RTCScene> scene;
         ray_hit.ray.dir_z = dir.z;
         ray_hit.ray.tnear = _tnear;
         ray_hit.ray.tfar = FLT_MAX;
-        ray_hit.ray.time = 0.0f;
+        ray_hit.ray.time = time_;
         ray_hit.ray.mask = 0;
         ray_hit.ray.id = 0;
         ray_hit.ray.flags = 0;
@@ -80,6 +80,10 @@ std::shared_ptr<RTCScene> scene;
     Coord2f get_texture_coord();
 
     Vector3 get_direction() const;
+
+    float get_ior() const{
+        return ray_hit.ray.time;
+    }
 
     void set_tfar(float tfar_);
 

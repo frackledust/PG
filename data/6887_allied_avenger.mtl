@@ -10,7 +10,7 @@
 # illum - shader type (Normal = 0, Mirror = 1, Lambert = 2, Phong = 3, Glass = 4)
 
 newmtl black_plastic
-	Ns 32
+	Ns 100
 	Ni 1.46
 	d 1
 	Tr 0
@@ -22,10 +22,10 @@ newmtl black_plastic
         
 newmtl green_plastic_transparent
 	Ns 32
-	Ni 1.46
+	Ni 1.5
 	d 1
 	Tr 0
-	Tf 1.0 0.1 1.0
+	Tf 0.4 0.001 0.4
 	illum 4
 	Ka 0.03 0.03 0.03
 	Kd 0.85 1.0 0.01

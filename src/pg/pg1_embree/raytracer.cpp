@@ -126,11 +126,11 @@ bool Raytracer::is_visible(const Vector3 hit_point, const Vector3 light_point){
     return !ray.has_hit();
 }
 
-Ray Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir) {
-    return Ray{origin, dir, 0.001f};
+Ray Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir, const float ior) {
+    return Ray{origin, dir, 0.001f, ior};
 }
 
-Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5, float ior_from = IOR_AIR) {
+Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5) {
     if(depth >= max_depth) return {0, 0, 0};
 
     ray.intersect(scene_);
@@ -167,13 +167,15 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5,
         if(shaderId == ShaderID::Phong){
             return get_color_phong(hit_point, omni_light_position,
                                    normal, v, l,
-                                   diffuse_color_v, specular_color_v, depth, max_depth, material);
+                                   diffuse_color_v, specular_color_v,
+                                   depth, max_depth, material, ray.get_ior());
         }
 
         if(shaderId == ShaderID::Glass){
-            return get_color_glass(hit_point, omni_light_position,
+            return get_color_glass(ray, hit_point, omni_light_position,
                            normal, v, l,
-                           diffuse_color_v, specular_color_v, depth, max_depth, material, ior_from);
+                           diffuse_color_v, specular_color_v, depth, max_depth,
+                           material, ray.get_ior());
         }
         
         
@@ -187,8 +189,8 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5,
             // Secondary ray
             Vector3 v_r = v.Reflect(normal);
             v_r.Normalize();
-            Ray secondary_ray = make_secondary_ray(hit_point, v_r);
-            Vector3 L_i = trace(secondary_ray, depth + 1, max_depth, material->ior);
+            Ray secondary_ray = make_secondary_ray(hit_point, v_r, ray.get_ior());
+            Vector3 L_i = trace(secondary_ray, depth + 1, max_depth);
 
             //Output color
             output_color = (material->ambient + S * diffuse_color_v + L_i * specular_color_v);
@@ -250,33 +252,23 @@ int Raytracer::Ui()
 	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 	ImGui::End();
 
-	// 3. Show another simple window.
-	/*if ( show_another_window )
-	{
-	ImGui::Begin( "Another Window", &show_another_window ); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-	ImGui::Text( "Hello from another window!" );
-	if ( ImGui::Button( "Close Me" ) )
-	show_another_window = false;
-	ImGui::End();
-	}*/
-
 	return 0;
 }
 
 void Raytracer::LoadBackground() {
-    background_ = std::make_unique<SphereMap>("data/studio.hdr");
+    background_ = std::make_unique<SphereMap>("data/sky.hdr");
 }
 
 Vector3 Raytracer::get_color_phong(Vector3 hit_point, Vector3 omni_light_position,
                                    Vector3 normal, Vector3 v, Vector3 l,
                                    Vector3 diffuse_color_v, Vector3 specular_color_v,
-                                   int depth, int max_depth, Material* material) {
+                                   int depth, int max_depth, Material* material, float ior_from) {
     
-    
+
+    v.Normalize();
     Vector3 v_r = v.Reflect(normal);
     v_r.Normalize();
-    
-    Ray secondary_ray = make_secondary_ray(hit_point, v_r);
+
     Vector3 c_phong = material->ambient;
     
     if(is_visible(hit_point, omni_light_position)){
@@ -287,15 +279,16 @@ Vector3 Raytracer::get_color_phong(Vector3 hit_point, Vector3 omni_light_positio
         c_phong += (diff * diffuse_color_v + phong_spec * specular_color_v);
     }
     
-    float cos_fi = clamp(v_r.DotProduct(l));
-    float n1 = material->ior;
-    float n2 = IOR_AIR;
+    float cos_fi = clamp(v.DotProduct(normal));
+    float n1 = ior_from;
+    float n2 = material->ior;
 
     float F0 = powf((n1 - n2) / (n1 + n2), 2);
     float R = F0 + (1 - F0) * powf(1 - cos_fi, 5);
     float T = 1 - R;
 
-    Vector3 c_ref = trace(secondary_ray, depth + 1, max_depth, material->ior);
+    Ray secondary_ray = make_secondary_ray(hit_point, v_r, ior_from);
+    Vector3 c_ref = trace(secondary_ray, depth + 1, max_depth);
     return c_phong + c_ref * R;
 }
 
@@ -307,7 +300,7 @@ Vector3 T_b_l(Vector3 mu, float l){
     return ret;
 }
 
-Vector3 Raytracer::get_color_glass(Vector3 hit_point, Vector3 omni_light_position,
+Vector3 Raytracer::get_color_glass(Ray &ray, Vector3 hit_point, Vector3 omni_light_position,
                                 Vector3 normal, Vector3 v, Vector3 l,
                                 Vector3 diffuse_color_v, Vector3 specular_color_v,
                                 int depth, int max_depth, Material* material, float ior_from) {
@@ -318,19 +311,28 @@ Vector3 Raytracer::get_color_glass(Vector3 hit_point, Vector3 omni_light_positio
     float cos_fi = clamp(v_r.DotProduct(normal));
     float n1 = ior_from;
     float n2 = material->ior;
+//    n1 = ray.ray_hit.ray.time;
+//    if (n1 == 1.0f) { n2 = 1.4f; }	// From air to material
+//    else { n2 = 1.0f; }						// From material to air
+
     float F0 = powf((n1 - n2) / (n1 + n2), 2);
     float R = F0 + (1 - F0) * powf(1 - cos_fi, 5);
     float T = 1 - R;
 
     Vector3 v_t = v.Refract(normal, n1, n2);
     v_t.Normalize();
-    Ray secondary_refr = make_secondary_ray(hit_point, v_t);
-    Vector3 c_refr = trace(secondary_refr, depth + 1, max_depth, material->ior);
+    Ray secondary_refr = make_secondary_ray(hit_point, v_t, material->ior);
+    Vector3 c_refr = trace(secondary_refr, depth + 1, max_depth);
 
-    Ray secondary_refl = make_secondary_ray(hit_point, v_r);
-    Vector3 c_refl = trace(secondary_refl, depth + 1, max_depth, material->ior);
+    Ray secondary_refl = make_secondary_ray(hit_point, v_r, ior_from);
+    Vector3 c_refl = trace(secondary_refl, depth + 1, max_depth);
 
-    Vector3 greenTint = Vector3(0.0, 1.0, 0.0);
-//    return (c_refl * R + c_refr * T) * T_b_l(material->attenuation, secondary_refr.get_tfar());
-    return c_refl * R + c_refr * T;
+    // check if n1 is air or not
+    float tfar = secondary_refr.get_tfar();
+    Vector3 a = T_b_l(material->attenuation, tfar);
+    if(n1 == IOR_AIR){
+        a = {1, 1, 1};
+    }
+    return (c_refl * R + c_refr * T) * a;
+//    return c_refl * R + (c_refr * T) * material->diffuse;
 }
