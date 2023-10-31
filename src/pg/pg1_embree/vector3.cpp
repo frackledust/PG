@@ -174,12 +174,16 @@ Vector3 Vector3::Reflect(Vector3 normal, bool to_hit_point) const {
     return 2 * vec.DotProduct(normal) * normal - vec;
 }
 
-Vector3 Vector3::Refract(Vector3 normal, float n1, float n2) const {
+bool Vector3::Refract(Vector3 normal, float n1, float n2, Vector3& result) const {
     Vector3 d = -(*this);
     d.Normalize();
     normal.Normalize();
     float ratio = n1 / n2;
     float cos_theta = d.DotProduct(normal);
-    Vector3 l = ratio * d - (ratio * cos_theta + sqrt(1 - ratio * ratio * (1 - cos_theta * cos_theta))) * normal;
-    return l;
+    float in_sqrt = 1 - ratio * ratio * (1 - cos_theta * cos_theta);
+    if(in_sqrt < 0){
+        return false;
+    }
+    result = ratio * d - (ratio * cos_theta + sqrt(in_sqrt)) * normal;
+    return true;
 }

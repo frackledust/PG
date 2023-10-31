@@ -105,6 +105,46 @@ void Raytracer::LoadScene(const std::string file_name)
 	rtcCommitScene(scene_);
 }
 
+int Raytracer::Ui()
+{
+    static float f = 0.0f;
+
+    // Use a Begin/End pair to created a named window
+    ImGui::Begin("Ray Tracer Params");
+
+    ImGui::Text("Surfaces = %d", surfaces_.size());
+    ImGui::Text("Materials = %d", materials_.size());
+    ImGui::Separator();
+    ImGui::Checkbox("Vsync", &vsync_);
+
+    ImGui::SliderFloat("float", &f, 0.0f, 1.0f); // Edit 1 float using a slider from 0.0f to 1.0f
+    //ImGui::ColorEdit3( "clear color", ( float* )&clear_color ); // Edit 3 floats representing a color
+
+    // Buttons return true when clicked (most widgets return true when edited/activated)
+    if (ImGui::Button("Left"))
+        camera_.Rotate(-0.1f);
+
+    ImGui::SameLine();
+    if (ImGui::Button("Right"))
+        camera_.Rotate(0.1f);
+
+    ImGui::SameLine();
+    if (ImGui::Button("Front"))
+        camera_.Move(-20);
+
+    ImGui::SameLine();
+    if (ImGui::Button("Back"))
+        camera_.Move(20);
+
+    ImGui::NewLine();
+    ImGui::Text("camera: %.1f %.1f", camera_.GetViewFrom().x, camera_.GetViewFrom().y);
+
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::End();
+
+    return 0;
+}
+
 // bodové svetlo: n = u*n1 + v*n2 + (1-u-v)*n3
 // color=diff_color*cross(n*l)
 float clamp(float x, float x0 = 0.0f, float x1 = 1.0f){
@@ -172,10 +212,7 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5)
         }
 
         if(shaderId == ShaderID::Glass){
-            return get_color_glass(ray, hit_point, omni_light_position,
-                           normal, v, l,
-                           diffuse_color_v, specular_color_v, depth, max_depth,
-                           material, ray.get_ior());
+            return get_color_glass(ray, normal, v, l, depth, max_depth, material);
         }
         
         
@@ -213,46 +250,6 @@ Color4f Raytracer::get_pixel(const int x, const int y, const float t)
     Ray ray(this->camera_.GenerateRay((float)x, (float)y));
     Vector3 result = trace(ray, 0);
     return static_cast<Color4f>(result);
-}
-
-int Raytracer::Ui()
-{
-	static float f = 0.0f;
-
-	// Use a Begin/End pair to created a named window
-	ImGui::Begin("Ray Tracer Params");
-
-	ImGui::Text("Surfaces = %d", surfaces_.size());
-	ImGui::Text("Materials = %d", materials_.size());
-	ImGui::Separator();
-	ImGui::Checkbox("Vsync", &vsync_);
-
-	ImGui::SliderFloat("float", &f, 0.0f, 1.0f); // Edit 1 float using a slider from 0.0f to 1.0f    
-	//ImGui::ColorEdit3( "clear color", ( float* )&clear_color ); // Edit 3 floats representing a color
-
-	// Buttons return true when clicked (most widgets return true when edited/activated)
-	if (ImGui::Button("Left"))
-        camera_.Rotate(-0.1f);
-
-    ImGui::SameLine();
-    if (ImGui::Button("Right"))
-        camera_.Rotate(0.1f);
-
-    ImGui::SameLine();
-    if (ImGui::Button("Front"))
-        camera_.Move(-20);
-
-    ImGui::SameLine();
-    if (ImGui::Button("Back"))
-        camera_.Move(20);
-
-    ImGui::NewLine();
-	ImGui::Text("camera: %.1f %.1f", camera_.GetViewFrom().x, camera_.GetViewFrom().y);
-
-	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-	ImGui::End();
-
-	return 0;
 }
 
 void Raytracer::LoadBackground() {
@@ -300,39 +297,35 @@ Vector3 T_b_l(Vector3 mu, float l){
     return ret;
 }
 
-Vector3 Raytracer::get_color_glass(Ray &ray, Vector3 hit_point, Vector3 omni_light_position,
-                                Vector3 normal, Vector3 v, Vector3 l,
-                                Vector3 diffuse_color_v, Vector3 specular_color_v,
-                                int depth, int max_depth, Material* material, float ior_from) {
+Vector3 Raytracer::get_color_glass(Ray &ray, Vector3 normal, Vector3 v, Vector3 l,
+                                int depth, int max_depth, Material* material) {
 
+    Vector3 hit_point = ray.get_hit_point();
     Vector3 v_r = v.Reflect(normal);
     v_r.Normalize();
 
     float cos_fi = clamp(v_r.DotProduct(normal));
-    float n1 = ior_from;
-    float n2 = material->ior;
-//    n1 = ray.ray_hit.ray.time;
-//    if (n1 == 1.0f) { n2 = 1.4f; }	// From air to material
-//    else { n2 = 1.0f; }						// From material to air
+    float n1 = ray.get_ior();
+    float n2 = material->ior == n1 ? IOR_AIR : material->ior;
 
     float F0 = powf((n1 - n2) / (n1 + n2), 2);
     float R = F0 + (1 - F0) * powf(1 - cos_fi, 5);
     float T = 1 - R;
 
-    Vector3 v_t = v.Refract(normal, n1, n2);
-    v_t.Normalize();
-    Ray secondary_refr = make_secondary_ray(hit_point, v_t, material->ior);
-    Vector3 c_refr = trace(secondary_refr, depth + 1, max_depth);
-
-    Ray secondary_refl = make_secondary_ray(hit_point, v_r, ior_from);
+    Ray secondary_refl = make_secondary_ray(hit_point, v_r, n1);
     Vector3 c_refl = trace(secondary_refl, depth + 1, max_depth);
 
-    // check if n1 is air or not
-    float tfar = secondary_refr.get_tfar();
-    Vector3 a = T_b_l(material->attenuation, tfar);
-    if(n1 == IOR_AIR){
-        a = {1, 1, 1};
+    Vector3 v_t;
+    Vector3 c_refr = {0, 0, 0};
+    if(v.Refract(normal, n1, n2, v_t)){
+        v_t.Normalize();
+        Ray secondary_refr = make_secondary_ray(hit_point, v_t, n2);
+        c_refr = trace(secondary_refr, depth + 1, max_depth);
+    }
+
+    Vector3 a = {1, 1, 1};
+    if(n1 != IOR_AIR){
+        a = T_b_l(material->attenuation, ray.get_tfar());
     }
     return (c_refl * R + c_refr * T) * a;
-//    return c_refl * R + (c_refr * T) * material->diffuse;
 }

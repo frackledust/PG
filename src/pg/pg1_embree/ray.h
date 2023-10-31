@@ -33,14 +33,15 @@ std::shared_ptr<RTCScene> scene;
         ray_hit.ray = _ray;
     }
 
-    Ray(Vector3 org, Vector3 dir, float _tnear, float time_ = 0.0f){
+    Ray(Vector3 org, Vector3 dir, float tnear_, float time_ = 0.0f){
+        ray_hit = RTCRayHit();
         ray_hit.ray.org_x = org.x;
         ray_hit.ray.org_y = org.y;
         ray_hit.ray.org_z = org.z;
         ray_hit.ray.dir_x = dir.x;
         ray_hit.ray.dir_y = dir.y;
         ray_hit.ray.dir_z = dir.z;
-        ray_hit.ray.tnear = _tnear;
+        ray_hit.ray.tnear = tnear_;
         ray_hit.ray.tfar = FLT_MAX;
         ray_hit.ray.time = time_;
         ray_hit.ray.mask = 0;

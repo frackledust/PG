@@ -159,7 +159,7 @@ public:
 
     Vector3 Reflect(Vector3 normal, bool to_hit_point = false) const;
 
-    Vector3 Refract(Vector3 normal, float n1, float n2) const;
+    bool Refract(Vector3 normal, float n1, float n2, Vector3 &result) const;
 };
 
 using Vertex3f = Vector3;
