@@ -205,10 +205,10 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5)
 
         auto shaderId = static_cast<ShaderID>(material->shader_id);
         if(shaderId == ShaderID::Phong){
-            return get_color_phong(hit_point, omni_light_position,
+            return get_color_phong(ray, hit_point, omni_light_position,
                                    normal, v, l,
                                    diffuse_color_v, specular_color_v,
-                                   depth, max_depth, material, ray.get_ior());
+                                   depth, max_depth, material);
         }
 
         if(shaderId == ShaderID::Glass){
@@ -253,13 +253,13 @@ Color4f Raytracer::get_pixel(const int x, const int y, const float t)
 }
 
 void Raytracer::LoadBackground() {
-    background_ = std::make_unique<SphereMap>("data/sky.hdr");
+    background_ = std::make_unique<SphereMap>("data/studio.hdr");
 }
 
-Vector3 Raytracer::get_color_phong(Vector3 hit_point, Vector3 omni_light_position,
+Vector3 Raytracer::get_color_phong(Ray& ray, Vector3 hit_point, Vector3 omni_light_position,
                                    Vector3 normal, Vector3 v, Vector3 l,
                                    Vector3 diffuse_color_v, Vector3 specular_color_v,
-                                   int depth, int max_depth, Material* material, float ior_from) {
+                                   int depth, int max_depth, Material* material) {
     
 
     v.Normalize();
@@ -275,16 +275,20 @@ Vector3 Raytracer::get_color_phong(Vector3 hit_point, Vector3 omni_light_positio
         float phong_spec = powf(clamp(l_r.DotProduct(v)), material->shininess);
         c_phong += (diff * diffuse_color_v + phong_spec * specular_color_v);
     }
-    
-    float cos_fi = clamp(v.DotProduct(normal));
-    float n1 = ior_from;
+
+    float cos_fi = clamp(v_r.DotProduct(normal));
+    float n1 = ray.get_ior();
     float n2 = material->ior;
+    if(n1 == n2){
+        n2 = IOR_AIR;
+    }
 
-    float F0 = powf((n1 - n2) / (n1 + n2), 2);
-    float R = F0 + (1 - F0) * powf(1 - cos_fi, 5);
-    float T = 1 - R;
+    float F0 = (n1 - n2) / (n1 + n2);
+    F0 = F0 * F0;
+    float tmp = 1 - cos_fi;
+    float R = F0 + (1 - F0) * (tmp * tmp * tmp * tmp * tmp);
 
-    Ray secondary_ray = make_secondary_ray(hit_point, v_r, ior_from);
+    Ray secondary_ray = make_secondary_ray(hit_point, v_r, n1);
     Vector3 c_ref = trace(secondary_ray, depth + 1, max_depth);
     return c_phong + c_ref * R;
 }
@@ -303,13 +307,19 @@ Vector3 Raytracer::get_color_glass(Ray &ray, Vector3 normal, Vector3 v, Vector3 
     Vector3 hit_point = ray.get_hit_point();
     Vector3 v_r = v.Reflect(normal);
     v_r.Normalize();
+    normal.Normalize();
 
     float cos_fi = clamp(v_r.DotProduct(normal));
     float n1 = ray.get_ior();
-    float n2 = material->ior == n1 ? IOR_AIR : material->ior;
+    float n2 = material->ior;
+    if(n1 == n2){
+        n2 = IOR_AIR;
+    }
 
-    float F0 = powf((n1 - n2) / (n1 + n2), 2);
-    float R = F0 + (1 - F0) * powf(1 - cos_fi, 5);
+    float F0 = (n1 - n2) / (n1 + n2);
+    F0 = F0 * F0;
+    float tmp = 1 - cos_fi;
+    float R = F0 + (1 - F0) * (tmp * tmp * tmp * tmp * tmp);
     float T = 1 - R;
 
     Ray secondary_refl = make_secondary_ray(hit_point, v_r, n1);

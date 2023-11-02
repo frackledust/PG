@@ -219,10 +219,10 @@ int tutorial_2()
 int tutorial_3( const std::string file_name, const char * config )
 {
 
-//	Raytracer raytracer( 640, 480, deg2rad( 45.0 ),
-//		Vector3( 175, -140, 130 ), Vector3( 0, 0, 35 ), config );
 	Raytracer raytracer( 640, 480, deg2rad( 45.0 ),
 		Vector3( 150, -110, 130 ), Vector3( 0, 0, 35 ), config );
+//    Raytracer raytracer( 640, 480, deg2rad( 45.0 ),
+//                         Vector3( 3, -3, 1 ), Vector3( 0, 0, 0 ), config );
 	raytracer.LoadScene( file_name );
     raytracer.LoadBackground();
 	raytracer.MainLoop();

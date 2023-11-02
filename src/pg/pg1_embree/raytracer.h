@@ -42,15 +42,15 @@ private:
 
     bool is_visible(Vector3 hit_point, Vector3 light_point);
 
-    Vector3 get_color_phong(Vector3 hit_point, Vector3 omni_light_position, Vector3 normal, Vector3 v, Vector3 l,
-                            Vector3 diffuse_color_v, Vector3 specular_color_v, int depth, int max_depth,
-                            Material *material,
-                            float ior_from);
-
     Ray make_secondary_ray(const Vector3 &origin, const Vector3 &dir, const float ior);
 
     Vector3 trace(Ray &ray, const int depth, const int max_depth);
 
     Vector3
     get_color_glass(Ray &ray, Vector3 normal, Vector3 v, Vector3 l, int depth, int max_depth, Material *material);
+
+    Vector3
+    get_color_phong(Ray &ray, Vector3 hit_point, Vector3 omni_light_position, Vector3 normal, Vector3 v, Vector3 l,
+                    Vector3 diffuse_color_v, Vector3 specular_color_v, int depth, int max_depth,
+                    Material *material);
 };
