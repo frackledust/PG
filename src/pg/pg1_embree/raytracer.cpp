@@ -4,6 +4,7 @@
 #include "tutorials.h"
 #include "ray.h"
 #include "SphereMap.h"
+#include "utils.h"
 
 Raytracer::Raytracer(const int width, const int height,
 	const float fov_y, const Vector3 view_from, const Vector3 view_at,
@@ -170,7 +171,7 @@ Ray Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir, con
     return Ray{origin, dir, 0.001f, ior};
 }
 
-Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5) {
+Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 10) {
     if(depth >= max_depth) return {0, 0, 0};
 
     ray.intersect(scene_);
@@ -247,6 +248,23 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 5)
 
 Color4f Raytracer::get_pixel(const int x, const int y, const float t)
 {
+//    int sample_count = 4;
+//    Vector3 acc = {0, 0, 0};
+//    for(int i = 0; i < sample_count; i++) {
+//        for (int j = 0; j < sample_count; j++) {
+//            float ksi_x = Random() / sample_count;
+//            float ksi_y = Random() / sample_count;
+//            float x_in = x + i * (1.0 / sample_count) + ksi_x;
+//            float y_in = y + j * (1.0 / sample_count) + ksi_y;
+//            Ray ray(this->camera_.GenerateRay((float)x_in, (float)y_in));
+//            Vector3 result = trace(ray, 0);
+//            acc += result;
+//        }
+//    }
+//
+//    acc /= (sample_count * sample_count);
+//    return static_cast<Color4f>(acc);
+
     Ray ray(this->camera_.GenerateRay((float)x, (float)y));
     Vector3 result = trace(ray, 0);
     return static_cast<Color4f>(result);

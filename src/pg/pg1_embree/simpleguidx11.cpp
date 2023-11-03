@@ -1,3 +1,4 @@
+#include <iostream>
 #include "stdafx.h"
 #include "simpleguidx11.h"
 
@@ -101,7 +102,8 @@ void SimpleGuiDX11::Producer()
 
 		// compute rendering
 		//std::this_thread::sleep_for( std::chrono::milliseconds( 50 ) );
-//#pragma omp parallel for
+        std::cout << "Producer started" << std::endl;
+#pragma omp parallel for
 		for ( int y = 0; y < height_; ++y )
 		{		
 			for ( int x = 0; x < width_; ++x )
@@ -116,6 +118,9 @@ void SimpleGuiDX11::Producer()
 				//pixel.copy( local_data[offset] );
 			}
 		}
+        //Measure end time
+        std::chrono::duration<float> duration = std::chrono::high_resolution_clock::now() - t1;
+        std::cout << "Producer finished in " << duration.count() << " seconds" << std::endl;
 
 		// write rendering results
 		{

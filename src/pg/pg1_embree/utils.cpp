@@ -13,9 +13,9 @@ float Random( const float range_min, const float range_max )
 {
 	float ksi;
 
-//#pragma omp critical ( random ) 
+#pragma omp critical ( random )
 	{
-		//ksi = static_cast<float>( rand() ) / ( RAND_MAX + 1 );		
+//		ksi = static_cast<float>( rand() ) / ( RAND_MAX + 1 );
 		ksi = static_cast<float>( uniform_generator() );
 
 		/*static float randoms[] = { 0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f };
