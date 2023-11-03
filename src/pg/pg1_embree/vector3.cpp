@@ -180,6 +180,7 @@ bool Vector3::Refract(Vector3 normal, float n1, float n2, Vector3& result) const
     float cos_theta = d.DotProduct(normal);
     float in_sqrt = 1 - ratio * ratio * (1 - cos_theta * cos_theta);
     if(in_sqrt < 0){
+        in_sqrt *= -1;
         return false;
     }
     result = ratio * d - (ratio * cos_theta + sqrt(in_sqrt)) * normal;

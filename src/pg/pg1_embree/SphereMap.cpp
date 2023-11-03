@@ -10,5 +10,6 @@ SphereMap::SphereMap(const std::string &file_name) {
 Color3f SphereMap::texel(const float x, const float y, const float z) {
      const float u = (atan2f(y, x) + ((y < 0.0f) ? 2.0f * float(M_PI) : 0.0f)) / (2.0f * float(M_PI));
      const float v = acosf(z) / float(M_PI);
+
      return texture_->get_texel(u, v);
 }

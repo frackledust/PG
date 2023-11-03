@@ -37,7 +37,7 @@ newmtl white_plastic
 	d 1
 	Tr 0
 	Tf 1 1 1
-	illum 2
+	illum 3
 	Ka 0.03 0.03 0.03
 	Kd 0.95 0.95 0.95
 	Ks 0.2 0.2 0.2
@@ -48,7 +48,7 @@ newmtl white_plastic_4150p04
 	d 1
 	Tr 0
 	Tf 1 1 1
-	illum 2
+	illum 3
 	Ka 0.03 0.03 0.03
 	Kd 0.95 0.95 0.95
 	Ks 0.2 0.2 0.2
@@ -60,7 +60,7 @@ newmtl white_plastic_3069bp13
 	d 1
 	Tr 0
 	Tf 1 1 1
-	illum 2
+	illum 3
 	Ka 0.03 0.03 0.03
 	Kd 0.95 0.95 0.95
 	Ks 0.2 0.2 0.2

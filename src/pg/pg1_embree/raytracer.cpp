@@ -4,7 +4,6 @@
 #include "tutorials.h"
 #include "ray.h"
 #include "SphereMap.h"
-#include "utils.h"
 
 Raytracer::Raytracer(const int width, const int height,
 	const float fov_y, const Vector3 view_from, const Vector3 view_at,
@@ -167,12 +166,44 @@ bool Raytracer::is_visible(const Vector3 hit_point, const Vector3 light_point){
     return !ray.has_hit();
 }
 
+void Raytracer::LoadBackground() {
+    background_ = std::make_unique<SphereMap>("data/studio.hdr");
+}
+
 Ray Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir, const float ior) {
     return Ray{origin, dir, 0.001f, ior};
 }
 
-Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 10) {
-    if(depth >= max_depth) return {0, 0, 0};
+Color4f Raytracer::get_pixel(const int x, const int y, const float t)
+{
+//    int sample_count = 4;
+//    Vector3 acc = {0, 0, 0};
+//    for(int i = 0; i < sample_count; i++) {
+//        for (int j = 0; j < sample_count; j++) {
+//            float ksi_x = Random() / sample_count;
+//            float ksi_y = Random() / sample_count;
+//            float x_in = x + i * (1.0 / sample_count) + ksi_x;
+//            float y_in = y + j * (1.0 / sample_count) + ksi_y;
+//            Ray ray(this->camera_.GenerateRay((float)x_in, (float)y_in));
+//            Vector3 result = trace(ray, 0);
+//            acc += result;
+//        }
+//    }
+//
+//    acc /= (sample_count * sample_count);
+//    return static_cast<Color4f>(acc);
+
+    Ray ray(this->camera_.GenerateRay((float)x, (float)y));
+    Vector3 result = trace(ray, 0);
+    return static_cast<Color4f>(result);
+}
+
+
+Vector3 Raytracer::trace(Ray &ray, const int depth = 0) {
+    if(depth >= 10){
+        //TODO: return to black later
+        return {1, 0, 0};
+    }
 
     ray.intersect(scene_);
 
@@ -209,11 +240,11 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 10
             return get_color_phong(ray, hit_point, omni_light_position,
                                    normal, v, l,
                                    diffuse_color_v, specular_color_v,
-                                   depth, max_depth, material);
+                                   depth, material);
         }
 
         if(shaderId == ShaderID::Glass){
-            return get_color_glass(ray, normal, v, l, depth, max_depth, material);
+            return get_color_glass(ray, normal, v, l, depth, material);
         }
         
         
@@ -228,7 +259,7 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 10
             Vector3 v_r = v.Reflect(normal);
             v_r.Normalize();
             Ray secondary_ray = make_secondary_ray(hit_point, v_r, ray.get_ior());
-            Vector3 L_i = trace(secondary_ray, depth + 1, max_depth);
+            Vector3 L_i = trace(secondary_ray, depth + 1);
 
             //Output color
             output_color = (material->ambient + S * diffuse_color_v + L_i * specular_color_v);
@@ -246,38 +277,10 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0, const int max_depth = 10
     return {bg_color};
 }
 
-Color4f Raytracer::get_pixel(const int x, const int y, const float t)
-{
-//    int sample_count = 4;
-//    Vector3 acc = {0, 0, 0};
-//    for(int i = 0; i < sample_count; i++) {
-//        for (int j = 0; j < sample_count; j++) {
-//            float ksi_x = Random() / sample_count;
-//            float ksi_y = Random() / sample_count;
-//            float x_in = x + i * (1.0 / sample_count) + ksi_x;
-//            float y_in = y + j * (1.0 / sample_count) + ksi_y;
-//            Ray ray(this->camera_.GenerateRay((float)x_in, (float)y_in));
-//            Vector3 result = trace(ray, 0);
-//            acc += result;
-//        }
-//    }
-//
-//    acc /= (sample_count * sample_count);
-//    return static_cast<Color4f>(acc);
-
-    Ray ray(this->camera_.GenerateRay((float)x, (float)y));
-    Vector3 result = trace(ray, 0);
-    return static_cast<Color4f>(result);
-}
-
-void Raytracer::LoadBackground() {
-    background_ = std::make_unique<SphereMap>("data/studio.hdr");
-}
-
 Vector3 Raytracer::get_color_phong(Ray& ray, Vector3 hit_point, Vector3 omni_light_position,
                                    Vector3 normal, Vector3 v, Vector3 l,
                                    Vector3 diffuse_color_v, Vector3 specular_color_v,
-                                   int depth, int max_depth, Material* material) {
+                                   int depth, Material* material) {
     
 
     v.Normalize();
@@ -307,7 +310,7 @@ Vector3 Raytracer::get_color_phong(Ray& ray, Vector3 hit_point, Vector3 omni_lig
     float R = F0 + (1 - F0) * (tmp * tmp * tmp * tmp * tmp);
 
     Ray secondary_ray = make_secondary_ray(hit_point, v_r, n1);
-    Vector3 c_ref = trace(secondary_ray, depth + 1, max_depth);
+    Vector3 c_ref = trace(secondary_ray, depth + 1);
     return c_phong + c_ref * R;
 }
 
@@ -320,14 +323,13 @@ Vector3 T_b_l(Vector3 mu, float l){
 }
 
 Vector3 Raytracer::get_color_glass(Ray &ray, Vector3 normal, Vector3 v, Vector3 l,
-                                int depth, int max_depth, Material* material) {
+                                int depth, Material* material) {
 
     Vector3 hit_point = ray.get_hit_point();
-    Vector3 v_r = v.Reflect(normal);
-    v_r.Normalize();
+    v.Normalize();
     normal.Normalize();
 
-    float cos_fi = clamp(v_r.DotProduct(normal));
+    float cos_fi = clamp(v.DotProduct(normal));
     float n1 = ray.get_ior();
     float n2 = material->ior;
     if(n1 == n2){
@@ -338,18 +340,22 @@ Vector3 Raytracer::get_color_glass(Ray &ray, Vector3 normal, Vector3 v, Vector3 
     F0 = F0 * F0;
     float tmp = 1 - cos_fi;
     float R = F0 + (1 - F0) * (tmp * tmp * tmp * tmp * tmp);
-    float T = 1 - R;
 
+    Vector3 v_r = v.Reflect(normal);
     Ray secondary_refl = make_secondary_ray(hit_point, v_r, n1);
-    Vector3 c_refl = trace(secondary_refl, depth + 1, max_depth);
+    Vector3 c_refl = trace(secondary_refl, depth + 1);
 
     Vector3 v_t;
     Vector3 c_refr = {0, 0, 0};
     if(v.Refract(normal, n1, n2, v_t)){
         v_t.Normalize();
         Ray secondary_refr = make_secondary_ray(hit_point, v_t, n2);
-        c_refr = trace(secondary_refr, depth + 1, max_depth);
+        c_refr = trace(secondary_refr, depth + 1);
     }
+    else{
+        R = 1;
+    }
+    float T = 1 - R;
 
     Vector3 a = {1, 1, 1};
     if(n1 != IOR_AIR){
