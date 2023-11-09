@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "camera.h"
 #include "material.h"
+#include "utils.h"
 
 Camera::Camera(const int width, const int height, const float fov_y,
 	const Vector3 view_from, const Vector3 view_at)
@@ -35,7 +36,36 @@ Ray Camera::GenerateRay(const float x_i, const float y_i) const
 	d_w.Normalize();
 
     Ray r = Ray(this->view_from_, d_w, FLT_MIN, IOR_AIR);
+
 	return r;
+}
+
+std::vector<Ray> Camera::GenerateRays(const float x_i, const float y_i, float focal_distance, int number_of_rays,
+                                      float aperture) const {
+    Vector3 d_c = Vector3(x_i - this->width_ * 0.5f, this->height_ * 0.5f - y_i, this->f_y_ * -1);
+    d_c.Normalize();
+    Vector3 d_w = this->M_c_w_ * d_c;
+    d_w.Normalize();
+
+    std::vector<Ray> rays;
+
+    for(int i = 0; i < number_of_rays; i++) {
+        Vector3 origin = view_from_;
+
+        Vector3 focal_point = view_from_ + focal_distance * d_w;
+        float shift_x = Random() * (aperture * 2) - aperture;
+        float shift_y = Random() * (aperture * 2) - aperture;
+
+        origin.x += shift_x;
+        origin.y += shift_y;
+
+        Vector3 t_v = focal_point - origin; // target vector (shifted camera, same focal point)
+        t_v.Normalize();
+
+        rays.emplace_back(origin, t_v, FLT_MIN, IOR_AIR);
+    }
+
+    return rays;
 }
 
 void Camera::Rotate(const float angle) {

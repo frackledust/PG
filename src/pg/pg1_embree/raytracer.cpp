@@ -168,7 +168,7 @@ bool Raytracer::is_visible(const Vector3 hit_point, const Vector3 light_point){
 }
 
 void Raytracer::LoadBackground() {
-    background_ = std::make_unique<SphereMap>("data/studio.hdr");
+    background_ = std::make_unique<SphereMap>("data/royal_esplanade_4k.hdr");
 }
 
 Ray Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir, const float ior) {
@@ -179,18 +179,22 @@ Color4f Raytracer::get_pixel(const int x, const int y, const float t)
 {
     int sample_count = 3;
     Vector3 acc = {0, 0, 0};
-    for(int i = 0; i < sample_count; i++) {
+    for (int i = 0; i < sample_count; i++) {
         for (int j = 0; j < sample_count; j++) {
-            float ksi_x = Random() / sample_count;
-            float ksi_y = Random() / sample_count;
-            float x_in = x + i * (1.0 / sample_count) + ksi_x;
-            float y_in = y + j * (1.0 / sample_count) + ksi_y;
-            Ray ray(this->camera_.GenerateRay((float)x_in, (float)y_in));
-            Vector3 result = trace(ray, 0);
-            acc += result;
+            float x_in = x + i * (1.0 / sample_count) + Random() / sample_count;
+            float y_in = y + j * (1.0 / sample_count) + Random() / sample_count;
+
+            auto rays = this->camera_.GenerateRays(x_in, y_in, 189, 5, 1.5);
+            Vector3 acc_d = {0, 0, 0};
+            for(auto& ray : rays){
+                Vector3 result = trace(ray, 0);
+                acc_d += result;
+            }
+            acc_d /= rays.size();
+
+            acc += acc_d;
         }
     }
-
     acc /= (sample_count * sample_count);
     return static_cast<Color4f>(acc);
 
@@ -202,8 +206,7 @@ Color4f Raytracer::get_pixel(const int x, const int y, const float t)
 
 Vector3 Raytracer::trace(Ray &ray, const int depth = 0) {
     if(depth >= 10){
-        //TODO: return to black later
-        return {1, 0, 0};
+        return {0, 0, 0};
     }
 
     ray.intersect(scene_);
@@ -215,11 +218,9 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0) {
         assert(material);
 
         Normal3f normal = ray.get_normal();
-        Coord2f tex_coord = ray.get_texture_coord();
 
         const Vector3 omni_light_position{100, 0, 130};
         const Vector3 hit_point = ray.get_hit_point();
-        const Vector3 hit2 = ray.get_hit_point();
         const Vector3 d = ray.get_direction();
         if(normal.DotProduct(d) > 0.0f){
             normal = normal*(-1.0f);

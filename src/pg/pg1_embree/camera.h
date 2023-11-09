@@ -15,21 +15,23 @@
 class Camera
 {
 public:
-	Camera() { }
+	Camera() = default;
 
-	Camera( const int width, const int height, const float fov_y,
-		const Vector3 view_from, const Vector3 view_at );
+	Camera( int width, int height, float fov_y,
+		Vector3 view_from, Vector3 view_at );
 
     void SetTransformationMatrix();
 
     Vector3 GetViewFrom() const;
 
-    void Rotate(const float angle);
+    void Rotate(float angle);
 
-    void Move(const float distance);
+    void Move(float distance);
 
 	/* generate primary ray, top-left pixel image coordinates (xi, yi) are in the range <0, 1) x <0, 1) */
-	Ray GenerateRay( const float xi, const float yi ) const;
+	Ray GenerateRay( float xi, float yi ) const;
+
+    std::vector<Ray> GenerateRays(float x_i, float y_i, float focal_distance, int number_of_rays, float aperture) const;
 
 private:
 	int width_{ 640 }; // image width (px)
@@ -42,7 +44,8 @@ private:
 
 	float f_y_{ 1.0f }; // focal lenght (px)
 
-	Matrix3x3 M_c_w_; // transformation matrix from CS -> WS	
+	Matrix3x3 M_c_w_; // transformation matrix from CS -> WS
+
 };
 
 #endif
