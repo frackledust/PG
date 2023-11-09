@@ -3,6 +3,7 @@
 
 #include "vector3.h"
 #include "texture.h"
+#include "ray.h"
 
 
 enum ShaderID{
@@ -102,6 +103,9 @@ public:
 	*/
 	Texture * get_texture( const int slot ) const;
 
+    Color3f get_diffuse_color(Ray &ray) const;
+    Color3f get_specular_color(Ray &ray) const;
+
 public:
 	Vector3 ambient; /*!< RGB barva prostøedí \f$\left<0, 1\right>^3\f$. */
 	Vector3 diffuse; /*!< RGB barva rozptylu \f$\left<0, 1\right>^3\f$. */
@@ -121,9 +125,6 @@ public:
 	static const char kSpecularMapSlot; /*!< Èíslo slotu spekulární textury. */
 	static const char kNormalMapSlot; /*!< Èíslo slotu normálové textury. */
 	static const char kOpacityMapSlot; /*!< Èíslo slotu transparentní textury. */
-
-    Color3f get_diffuse_color(const Coord2f &tex_coord) const;
-    Color3f get_specular_color(const Coord2f &tex_coord) const;
 
 private:
 	Texture * textures_[NO_TEXTURES]; /*!< Pole ukazatelù na textury. */

@@ -4,6 +4,7 @@
 #include "tutorials.h"
 #include "ray.h"
 #include "SphereMap.h"
+#include "utils.h"
 
 Raytracer::Raytracer(const int width, const int height,
 	const float fov_y, const Vector3 view_from, const Vector3 view_at,
@@ -176,26 +177,26 @@ Ray Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir, con
 
 Color4f Raytracer::get_pixel(const int x, const int y, const float t)
 {
-//    int sample_count = 4;
-//    Vector3 acc = {0, 0, 0};
-//    for(int i = 0; i < sample_count; i++) {
-//        for (int j = 0; j < sample_count; j++) {
-//            float ksi_x = Random() / sample_count;
-//            float ksi_y = Random() / sample_count;
-//            float x_in = x + i * (1.0 / sample_count) + ksi_x;
-//            float y_in = y + j * (1.0 / sample_count) + ksi_y;
-//            Ray ray(this->camera_.GenerateRay((float)x_in, (float)y_in));
-//            Vector3 result = trace(ray, 0);
-//            acc += result;
-//        }
-//    }
-//
-//    acc /= (sample_count * sample_count);
-//    return static_cast<Color4f>(acc);
+    int sample_count = 3;
+    Vector3 acc = {0, 0, 0};
+    for(int i = 0; i < sample_count; i++) {
+        for (int j = 0; j < sample_count; j++) {
+            float ksi_x = Random() / sample_count;
+            float ksi_y = Random() / sample_count;
+            float x_in = x + i * (1.0 / sample_count) + ksi_x;
+            float y_in = y + j * (1.0 / sample_count) + ksi_y;
+            Ray ray(this->camera_.GenerateRay((float)x_in, (float)y_in));
+            Vector3 result = trace(ray, 0);
+            acc += result;
+        }
+    }
 
-    Ray ray(this->camera_.GenerateRay((float)x, (float)y));
-    Vector3 result = trace(ray, 0);
-    return static_cast<Color4f>(result);
+    acc /= (sample_count * sample_count);
+    return static_cast<Color4f>(acc);
+
+//    Ray ray(this->camera_.GenerateRay((float)x, (float)y));
+//    Vector3 result = trace(ray, 0);
+//    return static_cast<Color4f>(result);
 }
 
 
@@ -216,11 +217,9 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0) {
         Normal3f normal = ray.get_normal();
         Coord2f tex_coord = ray.get_texture_coord();
 
-        auto diffuse_color_v = Vector3(material->get_diffuse_color(tex_coord));
-        auto specular_color_v = Vector3(material->get_specular_color(tex_coord));
-
         const Vector3 omni_light_position{100, 0, 130};
         const Vector3 hit_point = ray.get_hit_point();
+        const Vector3 hit2 = ray.get_hit_point();
         const Vector3 d = ray.get_direction();
         if(normal.DotProduct(d) > 0.0f){
             normal = normal*(-1.0f);
@@ -236,24 +235,26 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0) {
         Vector3 output_color;
 
         auto shaderId = static_cast<ShaderID>(material->shader_id);
+
         if(shaderId == ShaderID::Phong){
-            return get_color_phong(ray, hit_point, omni_light_position,
-                                   normal, v, l,
-                                   diffuse_color_v, specular_color_v,
-                                   depth, material);
+            return get_color_phong(ray, hit_point, omni_light_position, normal, v, l, depth, material);
         }
 
         if(shaderId == ShaderID::Glass){
             return get_color_glass(ray, normal, v, l, depth, material);
         }
-        
-        
+
         if(is_visible(hit_point, omni_light_position)){
+            if(shaderId == ShaderID::Lambert){
+                return get_color_lambert(ray, normal, l, material);
+            }
+
+            if(shaderId == ShaderID::Mirror){
+                return get_color_mirror(ray, normal, v, l, depth, material);
+            }
+
             //whitted
             float S = fabsf(normal.DotProduct(l));
-            if(shaderId == ShaderID::Mirror){
-                S = 0.0f;
-            }
 
             // Secondary ray
             Vector3 v_r = v.Reflect(normal);
@@ -262,6 +263,8 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0) {
             Vector3 L_i = trace(secondary_ray, depth + 1);
 
             //Output color
+            Vector3 diffuse_color_v = Vector3(material->get_diffuse_color(ray));
+            Vector3 specular_color_v = Vector3(material->get_specular_color(ray));
             output_color = (material->ambient + S * diffuse_color_v + L_i * specular_color_v);
         }
         else{
@@ -277,11 +280,24 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0) {
     return {bg_color};
 }
 
+Vector3 Raytracer::get_color_lambert(Ray& ray, Vector3 normal, Vector3 l, Material* material){
+    Vector3 result = material->ambient;
+    Vector3 diffuse_color_v = Vector3(material->get_diffuse_color(ray));
+
+    Vector3 l_r = l.Reflect(normal);
+    l_r.Normalize();
+    float diff = fabsf(normal.DotProduct(l));
+    result += (diff * diffuse_color_v);
+
+    return result;
+}
+
 Vector3 Raytracer::get_color_phong(Ray& ray, Vector3 hit_point, Vector3 omni_light_position,
                                    Vector3 normal, Vector3 v, Vector3 l,
-                                   Vector3 diffuse_color_v, Vector3 specular_color_v,
                                    int depth, Material* material) {
-    
+
+    Vector3 diffuse_color_v = Vector3(material->get_diffuse_color(ray));
+    Vector3 specular_color_v = Vector3(material->get_specular_color(ray));
 
     v.Normalize();
     Vector3 v_r = v.Reflect(normal);
@@ -322,8 +338,7 @@ Vector3 T_b_l(Vector3 mu, float l){
     return ret;
 }
 
-Vector3 Raytracer::get_color_glass(Ray &ray, Vector3 normal, Vector3 v, Vector3 l,
-                                int depth, Material* material) {
+Vector3 Raytracer::get_color_glass(Ray &ray, Vector3 normal, Vector3 v, Vector3 l, int depth, Material* material) {
 
     Vector3 hit_point = ray.get_hit_point();
     v.Normalize();
@@ -362,4 +377,20 @@ Vector3 Raytracer::get_color_glass(Ray &ray, Vector3 normal, Vector3 v, Vector3 
         a = T_b_l(material->attenuation, ray.get_tfar());
     }
     return (c_refl * R + c_refr * T) * a;
+}
+
+Vector3 Raytracer::get_color_mirror(Ray &ray, Vector3 normal, Vector3 v, Vector3 l,
+                                    int depth, Material* material){
+
+    Vector3 hit_point = ray.get_hit_point();
+
+    float n1 = ray.get_ior();
+    v.Normalize();
+    normal.Normalize();
+
+    Vector3 v_r = v.Reflect(normal);
+    Ray secondary_refl = make_secondary_ray(hit_point, v_r, n1);
+    Vector3 c_refl = trace(secondary_refl, depth + 1);
+
+    return c_refl;
 }

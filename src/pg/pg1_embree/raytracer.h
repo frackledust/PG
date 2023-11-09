@@ -46,9 +46,13 @@ private:
 
     Vector3 trace(Ray &ray, int depth);
 
-    Vector3 get_color_glass(Ray &ray, Vector3 normal, Vector3 v, Vector3 l, int depth, Material *material);
-
     Vector3
     get_color_phong(Ray &ray, Vector3 hit_point, Vector3 omni_light_position, Vector3 normal, Vector3 v, Vector3 l,
-                    Vector3 diffuse_color_v, Vector3 specular_color_v, int depth, Material *material);
+                    int depth, Material *material);
+
+    Vector3 get_color_lambert(Ray &ray, Vector3 normal, Vector3 l, Material *material);
+
+    Vector3 get_color_glass(Ray &ray, Vector3 normal, Vector3 v, Vector3 l, int depth, Material *material);
+
+    Vector3 get_color_mirror(Ray &ray, Vector3 normal, Vector3 v, Vector3 l, int depth, Material *material);
 };

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "material.h"
+#include "ray.h"
 
 const char Material::kDiffuseMapSlot = 0;
 const char Material::kSpecularMapSlot = 1;
@@ -80,7 +81,9 @@ Texture * Material::get_texture( const int slot ) const
 	return textures_[slot];
 }
 
-Color3f Material::get_diffuse_color(const Coord2f &tex_coord) const {
+Color3f Material::get_diffuse_color(Ray& ray) const {
+    Coord2f tex_coord = ray.get_texture_coord();
+
     Color3f diffuse_color = Color3f(diffuse);
     Texture * diffuse_texture = get_texture(kDiffuseMapSlot);
     if(diffuse_texture){
@@ -90,7 +93,9 @@ Color3f Material::get_diffuse_color(const Coord2f &tex_coord) const {
     return diffuse_color;
 }
 
-Color3f Material::get_specular_color(const Coord2f &tex_coord) const {
+Color3f Material::get_specular_color(Ray& ray) const {
+    Coord2f tex_coord = ray.get_texture_coord();
+
     Color3f specular_color = Color3f(specular);
     Texture * specular_texture = get_texture(kSpecularMapSlot);
     if(specular_texture){
