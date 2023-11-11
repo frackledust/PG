@@ -33,6 +33,10 @@ Coord2f Ray::get_texture_coord() {
     return tex_coord;
 }
 
+Vector3 Ray::get_origin() const {
+    return Vector3(ray_hit.ray.org_x, ray_hit.ray.org_y, ray_hit.ray.org_z);
+}
+
 Vector3 Ray::get_direction() const {
     return Vector3(ray_hit.ray.dir_x, ray_hit.ray.dir_y, ray_hit.ray.dir_z);
 }

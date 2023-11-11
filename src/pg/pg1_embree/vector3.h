@@ -149,6 +149,7 @@ public:
 	friend Vector3 operator*( const Vector3 & u, const Vector3 & v );
 
 	friend Vector3 operator/( const Vector3 & v, const float a );
+    friend Vector3 operator/( const Vector3 & u, const Vector3 & v );
 
 	friend void operator+=( Vector3 & u, const Vector3 & v );
 	friend void operator-=( Vector3 & u, const Vector3 & v );
@@ -156,6 +157,10 @@ public:
 	friend void operator/=( Vector3 & v, const float a );		
 
 	friend bool operator==( const Vector3 & u, const Vector3 & v );
+
+    float &operator[](int i) {
+        return data[i];
+    }
 
     Vector3 Reflect(Vector3 normal, bool to_hit_point = false) const;
 

@@ -14,6 +14,8 @@ class Ray {
 
 public:
 std::shared_ptr<RTCScene> scene;
+bool bvh_intersected = false;
+
     Ray(){
         ray_hit.ray.org_x = 0.0f;
         ray_hit.ray.org_y = 0.0f;
@@ -68,7 +70,7 @@ std::shared_ptr<RTCScene> scene;
     Normal3f get_normal();
 
     bool has_hit() const {
-        return ray_hit.hit.geomID != RTC_INVALID_GEOMETRY_ID;
+        return ray_hit.hit.geomID != RTC_INVALID_GEOMETRY_ID || bvh_intersected;
     }
 
     Vector3 get_hit_point() const{
@@ -79,6 +81,8 @@ std::shared_ptr<RTCScene> scene;
     }
 
     Coord2f get_texture_coord();
+
+    Vector3 get_origin() const;
 
     Vector3 get_direction() const;
 

@@ -131,6 +131,10 @@ Vector3 operator/( const Vector3 & v, const float a )
 	return v * ( 1 / a );
 }
 
+Vector3 operator/(const Vector3 &u, const Vector3 &v) {
+    return Vector3(u.x / v.x, u.y / v.y, u.z / v.z);
+}
+
 void operator+=( Vector3 & u, const Vector3 & v )
 {
 	u.x += v.x;
@@ -156,9 +160,6 @@ void operator/=( Vector3 & v, const float a )
 {
 	const float r = 1 / a;
 
-	v.x *= r;
-	v.y *= r;
-	v.z *= r;
 }
 
 bool operator==( const Vector3 & u, const Vector3 & v )
