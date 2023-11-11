@@ -4,6 +4,7 @@
 #include "camera.h"
 #include "ray.h"
 #include "SphereMap.h"
+#include "BVH.h"
 
 /*! \class Raytracer
 \brief General ray tracer class.
@@ -35,6 +36,7 @@ private:
 	std::vector<Surface *> surfaces_;
 	std::vector<Material *> materials_;
     std::unique_ptr<SphereMap> background_;
+    std::unique_ptr<BVH> bvh_;
 
 	RTCDevice device_;
 	RTCScene scene_;

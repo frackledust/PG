@@ -5,6 +5,7 @@
 #include "ray.h"
 #include "SphereMap.h"
 #include "utils.h"
+#include "BVH.h"
 
 Raytracer::Raytracer(const int width, const int height,
 	const float fov_y, const Vector3 view_from, const Vector3 view_at,
@@ -46,6 +47,8 @@ void Raytracer::LoadScene(const std::string file_name)
 {
 	const int no_surfaces = LoadOBJ(file_name.c_str(), surfaces_, materials_);
 
+    std::vector<std::shared_ptr<BVHTriangle>> bvh_triangles;
+
 	// surfaces loop
 	for (auto surface : surfaces_)
 	{
@@ -70,6 +73,8 @@ void Raytracer::LoadScene(const std::string file_name)
 		Coord2f* tex_coords = (Coord2f*)rtcSetNewGeometryBuffer(
 			mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT2,
 			sizeof(Coord2f), 3 * surface->no_triangles());
+
+        unsigned int geom_id = rtcAttachGeometry(scene_, mesh);
 
 		// triangles loop
 		for (int i = 0, k = 0; i < surface->no_triangles(); ++i)
@@ -96,12 +101,23 @@ void Raytracer::LoadScene(const std::string file_name)
 			triangles[i].v0 = k - 3;
 			triangles[i].v1 = k - 2;
 			triangles[i].v2 = k - 1;
+
+            //TODO: create BVH
+            std::shared_ptr<BVHTriangle> bvh_triangle = std::make_shared<BVHTriangle>();
+            bvh_triangle->vertices_[0] = triangle.vertex(0);
+            bvh_triangle->vertices_[1] = triangle.vertex(1);
+            bvh_triangle->vertices_[2] = triangle.vertex(2);
+            bvh_triangle->geom_id = geom_id;
+            bvh_triangle->calculate_bbox();
+            bvh_triangles.push_back(bvh_triangle);
 		} // end of triangles loop
 
 		rtcCommitGeometry(mesh);
-		unsigned int geom_id = rtcAttachGeometry(scene_, mesh);
 		rtcReleaseGeometry(mesh);
 	} // end of surfaces loop
+
+    bvh_ = std::make_unique<BVH>(bvh_triangles);
+    bvh_->BuildTree();
 
 	rtcCommitScene(scene_);
 }
@@ -213,6 +229,12 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0) {
 
     if (ray.has_hit())
     {
+//        bvh_->Traverse(ray);
+//        // assert that ray.bvh_intersected is true
+//        if(ray.get_tfar() != ray.bvh_tfar){
+//            printf("tfar: %f, bvh_tfar: %f\n", ray.get_tfar(), ray.bvh_tfar);
+//        }
+
         RTCGeometry geometry = ray.get_geometry();
         auto* material = (Material*) rtcGetGeometryUserData(geometry);
         assert(material);
@@ -275,6 +297,7 @@ Vector3 Raytracer::trace(Ray &ray, const int depth = 0) {
         return output_color;
     }
 
+    assert(!ray.bvh_intersected);
     // ray did not hit any surface
     Vector3 ray_dir = ray.get_direction();
     Color3f bg_color = background_->texel(ray_dir.x, ray_dir.y, ray_dir.z);

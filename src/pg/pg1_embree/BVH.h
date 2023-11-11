@@ -42,6 +42,7 @@ public:
 class BVHTriangle {
 public:
     Vertex vertices_[3];
+    unsigned int geom_id;
     std::shared_ptr<BVHBbox> bbox = nullptr;
 
     Vector3 get_center(){
@@ -49,6 +50,7 @@ public:
     }
 
     void calculate_bbox() {
+        bbox = std::make_shared<BVHBbox>();
         Vector3 v_min = vertices_[0].position;
         Vector3 v_max = vertices_[0].position;
 
@@ -59,19 +61,27 @@ public:
                 v_max[k] = max(v_max[k], vertex_pos[k]);
             }
         }
+
+        bbox->border_min = v_min;
+        bbox->border_max = v_max;
     }
 
     std::shared_ptr<BVHBbox> get_bbox(){
         if(bbox == nullptr){
-            bbox = std::make_shared<BVHBbox>();
             calculate_bbox();
         }
         return bbox;
     }
 
     void is_intersected(Ray &ray) {
+        int geom_id = ray.ray_hit.hit.geomID;
+        if (geom_id == this->geom_id) {
+            int a = 1;
+        }
+
         // Moller-Trumbore algorithm
         Vector3 ray_dir = ray.get_direction();
+        ray_dir.Normalize();
         Vector3 edge1 = vertices_[1].position - vertices_[0].position;
         Vector3 edge2 = vertices_[2].position - vertices_[0].position;
         Vector3 h = ray_dir.CrossProduct(edge2);
@@ -82,20 +92,21 @@ public:
 
         float f = 1.0 / a;
         Vector3 s = ray.get_origin() - vertices_[0].position;
+
         float u = f * s.DotProduct(h);
         if (u < 0.0 || u > 1.0)
             return;
         Vector3 q = s.CrossProduct(edge1);
+
         float v = f * ray_dir.DotProduct(q);
         if (v < 0.0 || u + v > 1.0)
             return;
 
-
         float t = f * edge2.DotProduct(q);
         if (t > 0.00001)
         {
-            if (t < ray.get_tfar()) {
-                ray.set_tfar(t);
+            if (t < ray.bvh_tfar) {
+                ray.bvh_tfar = t;
                 ray.bvh_intersected = true;
             }
         }
@@ -133,7 +144,7 @@ public:
 private:
     std::shared_ptr<BVHNode> root_;
     std::vector<std::shared_ptr<BVHTriangle>> items_;
-    int max_leaf_items_{};
+    int max_leaf_items_;
 
     std::shared_ptr<BVHNode> BuildTree(int from, int to, int depth);
     void Traverse(Ray &ray, const std::shared_ptr<BVHNode>& node, int depth);

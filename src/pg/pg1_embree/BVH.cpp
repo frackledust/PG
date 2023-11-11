@@ -8,6 +8,7 @@
 
 BVH::BVH(std::vector<std::shared_ptr<BVHTriangle>> items) {
     items_ = std::move(items);
+    max_leaf_items_ = 4;
 }
 
 void BVH::BuildTree() {
@@ -25,12 +26,12 @@ std::shared_ptr <BVHNode> BVH::BuildTree(int from, int to, int depth) {
         int axis = depth % 3;
         int pivot = (from + to) / 2;
 
-        std::nth_element(items_.begin() + from, items_.begin() + pivot, items_.begin() + to + 1,
+        std::nth_element(items_.begin() + from, items_.begin() + pivot, items_.begin() + to,
                          [axis](const std::shared_ptr<BVHTriangle> &a, const std::shared_ptr<BVHTriangle> &b) {
                              return a->get_center()[axis] < b->get_center()[axis];
                          });
 
-        node->children[0] = BuildTree(from, pivot - 1, depth + 1);
+        node->children[0] = BuildTree(from, pivot, depth + 1);
         node->children[1] = BuildTree(pivot, to, depth + 1);
     }
     return node;
@@ -41,9 +42,7 @@ void BVH::Traverse(Ray &ray, const std::shared_ptr<BVHNode>& node, int depth) {
 
         if(node->is_leaf()){
             // intersect all triangles
-            for(int i = node->span[0]; i <= node->span[1]; i++){
-                //  Update the ray.tfar parameter based on possible intersections with
-                //triangles in the current node
+            for(int i = node->span[0]; i < node->span[1]; i++){
                 items_[i]->is_intersected(ray);
             }
         } else {
@@ -56,7 +55,7 @@ void BVH::Traverse(Ray &ray, const std::shared_ptr<BVHNode>& node, int depth) {
 std::shared_ptr<BVHBbox> BVH::CalculateNodeBounds(int from, int to) {
     // // get the bounds of all vertices of all triangles in the current range
     std::shared_ptr<BVHBbox> bbox = items_[from]->get_bbox();
-    for(int i = from + 1; i <= to; i++){
+    for(int i = from + 1; i < to; i++){
         std::shared_ptr<BVHBbox> triangle_bbox = items_[i]->get_bbox();
         for(int j = 0; j < 3; j++){
             bbox->border_min[j] = min(bbox->border_min[j], triangle_bbox->border_min[j]);

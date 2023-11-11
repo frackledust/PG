@@ -15,6 +15,7 @@ class Ray {
 public:
 std::shared_ptr<RTCScene> scene;
 bool bvh_intersected = false;
+float bvh_tfar = FLT_MAX;
 
     Ray(){
         ray_hit.ray.org_x = 0.0f;
