@@ -5,14 +5,17 @@
 #include "ray.h"
 #include "embree3/rtcore_scene.h"
 
-bool BVH_BOOL = true;
+bool Ray::BVH_BOOL = false;
 
 void Ray::intersect(RTCScene _scene) {
     init_ray_hit();
     this->scene = std::make_shared<RTCScene>(_scene);
     RTCIntersectContext context{};
     rtcInitIntersectContext(&context);
-    if(!BVH_BOOL){
+
+    if(BVH_BOOL){
+    }
+    else{
         rtcIntersect1(_scene, &context, &ray_hit);
     }
 }
@@ -22,6 +25,14 @@ RTCGeometry Ray::get_geometry() {
         return rtcGetGeometry(*scene, bvh_geom_id);
     }
     return rtcGetGeometry(*scene, ray_hit.hit.geomID);
+}
+
+void *Ray::get_material() {
+    if(BVH_BOOL){
+        return bvh_material;
+    }
+    RTCGeometry geometry = get_geometry();
+    return rtcGetGeometryUserData(geometry);
 }
 
 Normal3f Ray::get_normal() {
@@ -69,6 +80,13 @@ float Ray::get_tfar() {
 
 float Ray::get_tnear() {
     return ray_hit.ray.tnear;
+}
+
+bool Ray::has_hit() const {
+    if(BVH_BOOL){
+        return bvh_intersected;
+    }
+    return ray_hit.hit.geomID != RTC_INVALID_GEOMETRY_ID;
 }
 
 

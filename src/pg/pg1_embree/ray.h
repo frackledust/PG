@@ -13,6 +13,8 @@
 class Ray {
 
 public:
+    static bool BVH_BOOL;
+
     std::shared_ptr<RTCScene> scene;
     bool bvh_intersected = false;
     float bvh_tfar = FLT_MAX;
@@ -21,6 +23,7 @@ public:
     float bvh_v = FLT_MAX;
     Vector3 bvh_normal = {FLT_MAX, FLT_MAX, FLT_MAX};
     Coord2f bvh_text_coords;
+    void* bvh_material;
 
     Ray(){
         ray_hit.ray.org_x = 0.0f;
@@ -75,9 +78,7 @@ public:
 
     Normal3f get_normal();
 
-    bool has_hit() const {
-        return ray_hit.hit.geomID != RTC_INVALID_GEOMETRY_ID;
-    }
+    bool has_hit() const;
 
     Vector3 get_hit_point() const{
         RTCRay ray = ray_hit.ray;
@@ -100,9 +101,9 @@ public:
 
     float get_tfar();
 
-    RTCGeometry get_bvh_geometry();
-
     float get_tnear();
+
+    void *get_material();
 };
 
 

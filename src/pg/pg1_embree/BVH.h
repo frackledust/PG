@@ -7,6 +7,7 @@
 
 #include "triangle.h"
 #include "ray.h"
+#include "material.h"
 #include <vector>
 #include <memory>
 
@@ -43,6 +44,7 @@ class BVHTriangle {
 public:
     Vertex vertices_[3];
     unsigned int geom_id;
+    Material* material;
     std::shared_ptr<BVHBbox> bbox = nullptr;
 
     BVHTriangle(Vertex a, Vertex b, Vertex c){
@@ -126,6 +128,7 @@ public:
                 ray.bvh_v = v;
                 ray.bvh_normal = get_normal(u, v);
                 ray.bvh_text_coords = get_coords(u, v);
+                ray.bvh_material = material;
             }
         }
     }

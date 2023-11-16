@@ -107,6 +107,7 @@ void Raytracer::LoadScene(const std::string file_name)
                                                                                       triangle.vertex(1),
                                                                                       triangle.vertex(2));
             bvh_triangle->geom_id = geom_id;
+            bvh_triangle->material = surface->get_material();
             bvh_triangle->calculate_bbox();
             bvh_triangles.push_back(bvh_triangle);
 		} // end of triangles loop
@@ -224,23 +225,15 @@ Vector3 Raytracer::trace(Ray ray, const int depth = 0) {
     }
 
     ray.intersect(scene_);
-    bvh_->Traverse(ray);
-//
-//    float tfar_1 = (round(ray.get_tfar() *100) /100);
-//    float tfar_2 = (round(ray.bvh_tfar *100) /100);
-//    if(tfar_1 != tfar_2) {
-//        printf("\ntfar: %f, bvh_tfar: %f\n", tfar_1, tfar_2);
-//    }
 
-//    bool check_hit = ray.has_hit();
-    bool check_hit = ray.bvh_intersected;
-//    ray.ray_hit.hit.geomID = ray.bvh_geom_id;
+    if(Ray::BVH_BOOL){
+        bvh_->Traverse(ray);
+    }
 
-    if (check_hit)
+    if (ray.has_hit())
     {
 
-        RTCGeometry geometry = ray.get_geometry();
-        auto* material = (Material*) rtcGetGeometryUserData(geometry);
+        Material* material = (Material*) ray.get_material();
         assert(material);
 
         Normal3f normal = ray.get_normal();
