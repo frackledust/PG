@@ -44,19 +44,28 @@ public:
     Vertex vertices_[3];
     unsigned int geom_id;
     std::shared_ptr<BVHBbox> bbox = nullptr;
-    Vector3 edge1;
-    Vector3 edge2;
 
     BVHTriangle(Vertex a, Vertex b, Vertex c){
         vertices_[0] = a;
         vertices_[1] = b;
         vertices_[2] = c;
-        edge1 = vertices_[1].position - vertices_[0].position;
-        edge2 = vertices_[2].position - vertices_[0].position;
     }
 
     Vector3 get_center(){
         return (vertices_[0].position + vertices_[1].position + vertices_[2].position) / 3.0f;
+    }
+
+    Vector3 get_normal(float u, float v){
+        return vertices_[0].normal * (1 - u - v) + vertices_[1].normal * u + vertices_[2].normal * v;
+    }
+
+    Coord2f get_coords(float u, float v){
+        Coord2f coords;
+        coords.u = vertices_[0].texture_coords[0].u * (1 - u - v) + vertices_[1].texture_coords[0].u * u
+                + vertices_[2].texture_coords[0].u * v;
+        coords.v = vertices_[0].texture_coords[0].v * (1 - u - v) + vertices_[1].texture_coords[0].v * u
+                   + vertices_[2].texture_coords[0].v * v;
+        return coords;
     }
 
     void calculate_bbox() {
@@ -86,6 +95,8 @@ public:
     void is_intersected(Ray &ray) {
         // Moller-Trumbore algorithm
         Vector3 ray_dir = ray.get_direction();
+        Vector3 edge1 = vertices_[1].position - vertices_[0].position;
+        Vector3 edge2 = vertices_[2].position - vertices_[0].position;
         Vector3 h = ray_dir.CrossProduct(edge2);
 
         float a = edge1.DotProduct(h);
@@ -111,6 +122,10 @@ public:
                 ray.bvh_tfar = t;
                 ray.bvh_intersected = true;
                 ray.bvh_geom_id = this->geom_id;
+                ray.bvh_u = u;
+                ray.bvh_v = v;
+                ray.bvh_normal = get_normal(u, v);
+                ray.bvh_text_coords = get_coords(u, v);
             }
         }
     }

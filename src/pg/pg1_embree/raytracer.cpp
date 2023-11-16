@@ -192,25 +192,25 @@ Ray Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir, con
 
 Color4f Raytracer::get_pixel(const int x, const int y, const float t)
 {
-    int sample_count = 2;
-    Vector3 acc = {0, 0, 0};
-    for (int i = 0; i < sample_count; i++) {
-        for (int j = 0; j < sample_count; j++) {
-            float x_in = x + i * (1.0 / sample_count) + Random() / sample_count;
-            float y_in = y + j * (1.0 / sample_count) + Random() / sample_count;
-
-            auto rays = this->camera_.GenerateRays(x_in, y_in, 189, 1, 1.5);
-            Vector3 acc_d = {0, 0, 0};
-            for(auto& ray : rays){
-                Vector3 result = trace(ray, 0);
-                acc_d += result;
-            }
-            acc_d /= rays.size();
-            acc += acc_d;
-        }
-    }
-    acc /= (sample_count * sample_count);
-    return static_cast<Color4f>(acc);
+//    int sample_count = 2;
+//    Vector3 acc = {0, 0, 0};
+//    for (int i = 0; i < sample_count; i++) {
+//        for (int j = 0; j < sample_count; j++) {
+//            float x_in = x + i * (1.0 / sample_count) + Random() / sample_count;
+//            float y_in = y + j * (1.0 / sample_count) + Random() / sample_count;
+//
+//            auto rays = this->camera_.GenerateRays(x_in, y_in, 189, 1, 1.5);
+//            Vector3 acc_d = {0, 0, 0};
+//            for(auto& ray : rays){
+//                Vector3 result = trace(ray, 0);
+//                acc_d += result;
+//            }
+//            acc_d /= rays.size();
+//            acc += acc_d;
+//        }
+//    }
+//    acc /= (sample_count * sample_count);
+//    return static_cast<Color4f>(acc);
 
     Ray ray(this->camera_.GenerateRay((float)x, (float)y));
     Vector3 result = trace(ray, 0);
@@ -224,8 +224,7 @@ Vector3 Raytracer::trace(Ray ray, const int depth = 0) {
     }
 
     ray.intersect(scene_);
-
-//    bvh_->Traverse(ray);
+    bvh_->Traverse(ray);
 //
 //    float tfar_1 = (round(ray.get_tfar() *100) /100);
 //    float tfar_2 = (round(ray.bvh_tfar *100) /100);
@@ -233,8 +232,8 @@ Vector3 Raytracer::trace(Ray ray, const int depth = 0) {
 //        printf("\ntfar: %f, bvh_tfar: %f\n", tfar_1, tfar_2);
 //    }
 
-    bool check_hit = ray.has_hit();
-//    bool check_hit = ray.bvh_intersected;
+//    bool check_hit = ray.has_hit();
+    bool check_hit = ray.bvh_intersected;
 //    ray.ray_hit.hit.geomID = ray.bvh_geom_id;
 
     if (check_hit)

@@ -13,10 +13,14 @@
 class Ray {
 
 public:
-std::shared_ptr<RTCScene> scene;
-bool bvh_intersected = false;
-float bvh_tfar = FLT_MAX;
-unsigned int bvh_geom_id;
+    std::shared_ptr<RTCScene> scene;
+    bool bvh_intersected = false;
+    float bvh_tfar = FLT_MAX;
+    unsigned int bvh_geom_id;
+    float bvh_u = FLT_MAX;
+    float bvh_v = FLT_MAX;
+    Vector3 bvh_normal = {FLT_MAX, FLT_MAX, FLT_MAX};
+    Coord2f bvh_text_coords;
 
     Ray(){
         ray_hit.ray.org_x = 0.0f;

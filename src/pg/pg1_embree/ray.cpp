@@ -5,26 +5,32 @@
 #include "ray.h"
 #include "embree3/rtcore_scene.h"
 
+bool BVH_BOOL = true;
+
 void Ray::intersect(RTCScene _scene) {
     init_ray_hit();
     this->scene = std::make_shared<RTCScene>(_scene);
     RTCIntersectContext context{};
     rtcInitIntersectContext(&context);
-    rtcIntersect1(_scene, &context, &ray_hit);
+    if(!BVH_BOOL){
+        rtcIntersect1(_scene, &context, &ray_hit);
+    }
 }
 
 RTCGeometry Ray::get_geometry() {
+    if(BVH_BOOL){
+        return rtcGetGeometry(*scene, bvh_geom_id);
+    }
     return rtcGetGeometry(*scene, ray_hit.hit.geomID);
 }
 
-RTCGeometry Ray::get_bvh_geometry() {
-    return rtcGetGeometry(*scene, bvh_geom_id);
-}
-
 Normal3f Ray::get_normal() {
+    if(BVH_BOOL){
+        return bvh_normal;
+    }
+
     Normal3f normal{};
     RTCGeometry geometry = get_geometry();
-    //TODO: HOW TO SOLVE THIS
     rtcInterpolate0(geometry, ray_hit.hit.primID, ray_hit.hit.u, ray_hit.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
     return normal;
@@ -32,6 +38,10 @@ Normal3f Ray::get_normal() {
 
 Coord2f Ray::get_texture_coord() {
     Coord2f tex_coord{};
+    if(BVH_BOOL){
+        return bvh_text_coords;
+    }
+
     RTCGeometry geometry = get_geometry();
     rtcInterpolate0(geometry, ray_hit.hit.primID, ray_hit.hit.u, ray_hit.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, &tex_coord.u, 2);
@@ -51,6 +61,9 @@ void Ray::set_tfar(float tfar_) {
 }
 
 float Ray::get_tfar() {
+    if(BVH_BOOL){
+        return bvh_tfar;
+    }
     return ray_hit.ray.tfar;
 }
 
