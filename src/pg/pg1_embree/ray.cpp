@@ -17,9 +17,14 @@ RTCGeometry Ray::get_geometry() {
     return rtcGetGeometry(*scene, ray_hit.hit.geomID);
 }
 
+RTCGeometry Ray::get_bvh_geometry() {
+    return rtcGetGeometry(*scene, bvh_geom_id);
+}
+
 Normal3f Ray::get_normal() {
     Normal3f normal{};
     RTCGeometry geometry = get_geometry();
+    //TODO: HOW TO SOLVE THIS
     rtcInterpolate0(geometry, ray_hit.hit.primID, ray_hit.hit.u, ray_hit.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, &normal.x, 3);
     return normal;
@@ -47,6 +52,10 @@ void Ray::set_tfar(float tfar_) {
 
 float Ray::get_tfar() {
     return ray_hit.ray.tfar;
+}
+
+float Ray::get_tnear() {
+    return ray_hit.ray.tnear;
 }
 
 

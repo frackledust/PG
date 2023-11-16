@@ -159,7 +159,9 @@ void operator*=( Vector3 & v, const float a )
 void operator/=( Vector3 & v, const float a )
 {
 	const float r = 1 / a;
-
+    v.x *= r;
+    v.y *= r;
+    v.z *= r;
 }
 
 bool operator==( const Vector3 & u, const Vector3 & v )

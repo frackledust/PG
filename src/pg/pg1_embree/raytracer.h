@@ -46,7 +46,7 @@ private:
 
     Ray make_secondary_ray(const Vector3 &origin, const Vector3 &dir, float ior);
 
-    Vector3 trace(Ray &ray, int depth);
+    Vector3 trace(Ray ray, int depth);
 
     Vector3
     get_color_phong(Ray &ray, Vector3 hit_point, Vector3 omni_light_position, Vector3 normal, Vector3 v, Vector3 l,

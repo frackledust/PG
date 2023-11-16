@@ -16,6 +16,7 @@ public:
 std::shared_ptr<RTCScene> scene;
 bool bvh_intersected = false;
 float bvh_tfar = FLT_MAX;
+unsigned int bvh_geom_id;
 
     Ray(){
         ray_hit.ray.org_x = 0.0f;
@@ -71,7 +72,7 @@ float bvh_tfar = FLT_MAX;
     Normal3f get_normal();
 
     bool has_hit() const {
-        return ray_hit.hit.geomID != RTC_INVALID_GEOMETRY_ID || bvh_intersected;
+        return ray_hit.hit.geomID != RTC_INVALID_GEOMETRY_ID;
     }
 
     Vector3 get_hit_point() const{
@@ -94,6 +95,10 @@ float bvh_tfar = FLT_MAX;
     void set_tfar(float tfar_);
 
     float get_tfar();
+
+    RTCGeometry get_bvh_geometry();
+
+    float get_tnear();
 };
 
 
