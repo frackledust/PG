@@ -9,21 +9,19 @@
 #include <cfloat>
 #include <memory>
 #include "embree3/rtcore_ray.h"
+#include "material.h"
+#include "BVH.h"
+
+class BVHHitPoint;
 
 class Ray {
 
 public:
     static bool BVH_BOOL;
 
+    RTCRayHit ray_hit;
     std::shared_ptr<RTCScene> scene;
-    bool bvh_intersected = false;
-    float bvh_tfar = FLT_MAX;
-    unsigned int bvh_geom_id;
-    float bvh_u = FLT_MAX;
-    float bvh_v = FLT_MAX;
-    Vector3 bvh_normal = {FLT_MAX, FLT_MAX, FLT_MAX};
-    Coord2f bvh_text_coords;
-    void* bvh_material;
+    std::shared_ptr<BVHHitPoint> bvh_hit_point;
 
     Ray(){
         ray_hit.ray.org_x = 0.0f;
@@ -38,6 +36,14 @@ public:
         ray_hit.ray.mask = 0;
         ray_hit.ray.id = 0;
         ray_hit.ray.flags = 0;
+
+        ray_hit.hit.Ng_x = 0.0f;
+        ray_hit.hit.Ng_y = 0.0f;
+        ray_hit.hit.Ng_z = 0.0f;
+        ray_hit.hit.u = 0.0f;
+        ray_hit.hit.v = 0.0f;
+        ray_hit.hit.primID = RTC_INVALID_GEOMETRY_ID;
+        ray_hit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
     }
 
     Ray(RTCRay _ray){
@@ -58,11 +64,6 @@ public:
         ray_hit.ray.mask = 0;
         ray_hit.ray.id = 0;
         ray_hit.ray.flags = 0;
-    }
-
-    RTCRayHit ray_hit;
-
-    void init_ray_hit(){
         ray_hit.hit.Ng_x = 0.0f;
         ray_hit.hit.Ng_y = 0.0f;
         ray_hit.hit.Ng_z = 0.0f;
@@ -70,13 +71,14 @@ public:
         ray_hit.hit.v = 0.0f;
         ray_hit.hit.primID = RTC_INVALID_GEOMETRY_ID;
         ray_hit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+        if(BVH_BOOL){
+            bvh_hit_point = std::make_shared<BVHHitPoint>();
+        }
     }
 
     void intersect(RTCScene _scene);
 
-    RTCGeometry get_geometry();
-
-    Normal3f get_normal();
+    Normal3f get_normal() const;
 
     bool has_hit() const;
 
@@ -87,7 +89,7 @@ public:
                 ray.org_z + ray.dir_z * ray.tfar};
     }
 
-    Coord2f get_texture_coord();
+    Coord2f get_texture_coord() const;
 
     Vector3 get_origin() const;
 
@@ -99,11 +101,15 @@ public:
 
     void set_tfar(float tfar_);
 
-    float get_tfar();
+    float get_tfar() const;
 
-    float get_tnear();
+    float get_tnear() const;
 
-    void *get_material();
+    Material * get_material() const;
+
+    Vector3 get_diffuse_color() const;
+
+    Vector3 get_specular_color() const;
 };
 
 

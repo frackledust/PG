@@ -81,25 +81,21 @@ Texture * Material::get_texture( const int slot ) const
 	return textures_[slot];
 }
 
-Color3f Material::get_diffuse_color(Ray& ray) const {
-    Coord2f tex_coord = ray.get_texture_coord();
-
+Color3f Material::get_diffuse_color(float u, float v) const {
     Color3f diffuse_color = Color3f(diffuse);
     Texture * diffuse_texture = get_texture(kDiffuseMapSlot);
     if(diffuse_texture){
-        Color3f diffuse_texel = diffuse_texture->get_texel(tex_coord.u, 1 - tex_coord.v);
+        Color3f diffuse_texel = diffuse_texture->get_texel(u, 1 - v);
         diffuse_color = diffuse_texel;
     }
     return diffuse_color;
 }
 
-Color3f Material::get_specular_color(Ray& ray) const {
-    Coord2f tex_coord = ray.get_texture_coord();
-
+Color3f Material::get_specular_color(float u, float v) const {
     Color3f specular_color = Color3f(specular);
     Texture * specular_texture = get_texture(kSpecularMapSlot);
     if(specular_texture){
-        Color3f specular_texel = specular_texture->get_texel(tex_coord.u, 1 - tex_coord.v);
+        Color3f specular_texel = specular_texture->get_texel(u, 1 - v);
         specular_color = specular_texel;
     }
     return specular_color;

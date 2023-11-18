@@ -1,9 +1,9 @@
 #ifndef MATERIAL_H_
 #define MATERIAL_H_
 
+#include <string>
 #include "vector3.h"
 #include "texture.h"
-#include "ray.h"
 
 
 enum ShaderID{
@@ -103,8 +103,8 @@ public:
 	*/
 	Texture * get_texture( const int slot ) const;
 
-    Color3f get_diffuse_color(Ray &ray) const;
-    Color3f get_specular_color(Ray &ray) const;
+    Color3f get_diffuse_color(float u, float v) const;
+    Color3f get_specular_color(float u, float v) const;
 
 public:
 	Vector3 ambient; /*!< RGB barva prostøedí \f$\left<0, 1\right>^3\f$. */
@@ -118,7 +118,6 @@ public:
 
 	float reflectivity; /*!< Koeficient odrazivosti. */
 	float ior; /*!< Index lomu. */
-// TODO: make enum
     int shader_id = 0;
 
 	static const char kDiffuseMapSlot; /*!< Èíslo slotu difuzní textury. */

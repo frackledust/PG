@@ -233,9 +233,7 @@ Vector3 Raytracer::trace(Ray ray, const int depth = 0) {
     if (ray.has_hit())
     {
 
-        Material* material = (Material*) ray.get_material();
-        assert(material);
-
+        Material* material = ray.get_material();
         Normal3f normal = ray.get_normal();
 
         const Vector3 omni_light_position{100, 0, 130};
@@ -283,8 +281,8 @@ Vector3 Raytracer::trace(Ray ray, const int depth = 0) {
             Vector3 L_i = trace(secondary_ray, depth + 1);
 
             //Output color
-            Vector3 diffuse_color_v = Vector3(material->get_diffuse_color(ray));
-            Vector3 specular_color_v = Vector3(material->get_specular_color(ray));
+            Vector3 diffuse_color_v = ray.get_diffuse_color();
+            Vector3 specular_color_v = ray.get_specular_color();
             output_color = (material->ambient + S * diffuse_color_v + L_i * specular_color_v);
         }
         else{
@@ -302,7 +300,7 @@ Vector3 Raytracer::trace(Ray ray, const int depth = 0) {
 
 Vector3 Raytracer::get_color_lambert(Ray& ray, Vector3 normal, Vector3 l, Material* material){
     Vector3 result = material->ambient;
-    Vector3 diffuse_color_v = Vector3(material->get_diffuse_color(ray));
+    Vector3 diffuse_color_v = ray.get_diffuse_color();
 
     Vector3 l_r = l.Reflect(normal);
     l_r.Normalize();
@@ -316,8 +314,8 @@ Vector3 Raytracer::get_color_phong(Ray& ray, Vector3 hit_point, Vector3 omni_lig
                                    Vector3 normal, Vector3 v, Vector3 l,
                                    int depth, Material* material) {
 
-    Vector3 diffuse_color_v = Vector3(material->get_diffuse_color(ray));
-    Vector3 specular_color_v = Vector3(material->get_specular_color(ray));
+    Vector3 diffuse_color_v = ray.get_diffuse_color();
+    Vector3 specular_color_v = ray.get_specular_color();
 
     v.Normalize();
     Vector3 v_r = v.Reflect(normal);
