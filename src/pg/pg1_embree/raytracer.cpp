@@ -4,7 +4,6 @@
 #include "tutorials.h"
 #include "ray.h"
 #include "SphereMap.h"
-#include "utils.h"
 #include "BVH.h"
 
 Raytracer::Raytracer(const int width, const int height,

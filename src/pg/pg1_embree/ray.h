@@ -82,12 +82,7 @@ public:
 
     bool has_hit() const;
 
-    Vector3 get_hit_point() const{
-        RTCRay ray = ray_hit.ray;
-        return {ray.org_x + ray.dir_x * ray.tfar,
-                ray.org_y + ray.dir_y * ray.tfar,
-                ray.org_z + ray.dir_z * ray.tfar};
-    }
+    Vector3 get_hit_point() const;
 
     Coord2f get_texture_coord() const;
 
@@ -95,9 +90,7 @@ public:
 
     Vector3 get_direction() const;
 
-    float get_ior() const{
-        return ray_hit.ray.time;
-    }
+    float get_ior() const;
 
     void set_tfar(float tfar_);
 

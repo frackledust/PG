@@ -70,8 +70,15 @@ Vector3 Ray::get_direction() const {
     return Vector3(ray_hit.ray.dir_x, ray_hit.ray.dir_y, ray_hit.ray.dir_z);
 }
 
+float Ray::get_ior() const {
+    return ray_hit.ray.time;
+};
+
 void Ray::set_tfar(float tfar_) {
     ray_hit.ray.tfar = tfar_;
+    if(BVH_BOOL){
+        bvh_hit_point->tfar = tfar_;
+    }
 }
 
 float Ray::get_tfar() const {
@@ -90,6 +97,15 @@ bool Ray::has_hit() const {
         return bvh_hit_point->is_intersected;
     }
     return ray_hit.hit.geomID != RTC_INVALID_GEOMETRY_ID;
+}
+
+Vector3 Ray::get_hit_point() const {
+    float _tfar = get_tfar();
+    return {
+            ray_hit.ray.org_x + _tfar * ray_hit.ray.dir_x,
+            ray_hit.ray.org_y + _tfar * ray_hit.ray.dir_y,
+            ray_hit.ray.org_z + _tfar * ray_hit.ray.dir_z
+    };
 }
 
 
