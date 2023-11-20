@@ -5,6 +5,7 @@
 #include "ray.h"
 #include "SphereMap.h"
 #include "BVH.h"
+#include "mymath.h"
 
 Raytracer::Raytracer(const int width, const int height,
 	const float fov_y, const Vector3 view_from, const Vector3 view_at,
@@ -161,12 +162,6 @@ int Raytracer::Ui()
     return 0;
 }
 
-// bodové svetlo: n = u*n1 + v*n2 + (1-u-v)*n3
-// color=diff_color*cross(n*l)
-float clamp(float x, float x0 = 0.0f, float x1 = 1.0f){
-    return max(min(x, x1), x0);
-}
-
 bool Raytracer::is_visible(const Vector3 hit_point, const Vector3 light_point){
 
     // vector to light
@@ -235,14 +230,13 @@ Vector3 Raytracer::trace(Ray ray, const int depth = 0) {
         Material* material = ray.get_material();
         Normal3f normal = ray.get_normal();
 
-        const Vector3 omni_light_position{100, 0, 130};
         const Vector3 hit_point = ray.get_hit_point();
         const Vector3 d = ray.get_direction();
         if(normal.DotProduct(d) > 0.0f){
             normal = normal*(-1.0f);
         }
 
-        Vector3 l = omni_light_position - hit_point;
+        Vector3 l = omni_light_position_ - hit_point;
         normal.Normalize();
         l.Normalize();
 
@@ -254,14 +248,14 @@ Vector3 Raytracer::trace(Ray ray, const int depth = 0) {
         auto shaderId = static_cast<ShaderID>(material->shader_id);
 
         if(shaderId == ShaderID::Phong){
-            return get_color_phong(ray, hit_point, omni_light_position, normal, v, l, depth, material);
+            return get_color_phong(ray, hit_point, omni_light_position_, normal, v, l, depth, material);
         }
 
         if(shaderId == ShaderID::Glass){
             return get_color_glass(ray, normal, v, l, depth, material);
         }
 
-        if(is_visible(hit_point, omni_light_position)){
+        if(is_visible(hit_point, omni_light_position_)){
             if(shaderId == ShaderID::Lambert){
                 return get_color_lambert(ray, normal, l, material);
             }
@@ -273,13 +267,11 @@ Vector3 Raytracer::trace(Ray ray, const int depth = 0) {
             //whitted
             float S = fabsf(normal.DotProduct(l));
 
-            // Secondary ray
             Vector3 v_r = v.Reflect(normal);
             v_r.Normalize();
             Ray secondary_ray = make_secondary_ray(hit_point, v_r, ray.get_ior());
             Vector3 L_i = trace(secondary_ray, depth + 1);
 
-            //Output color
             Vector3 diffuse_color_v = ray.get_diffuse_color();
             Vector3 specular_color_v = ray.get_specular_color();
             output_color = (material->ambient + S * diffuse_color_v + L_i * specular_color_v);
@@ -345,14 +337,6 @@ Vector3 Raytracer::get_color_phong(Ray& ray, Vector3 hit_point, Vector3 omni_lig
     Ray secondary_ray = make_secondary_ray(hit_point, v_r, n1);
     Vector3 c_ref = trace(secondary_ray, depth + 1);
     return c_phong + c_ref * R;
-}
-
-Vector3 T_b_l(Vector3 mu, float l){
-    Vector3 ret;
-    ret.x = exp((-mu.x) * l);
-    ret.y = exp((-mu.y) * l);
-    ret.z *= exp((-mu.z) * l);
-    return ret;
 }
 
 Vector3 Raytracer::get_color_glass(Ray &ray, Vector3 normal, Vector3 v, Vector3 l, int depth, Material* material) {

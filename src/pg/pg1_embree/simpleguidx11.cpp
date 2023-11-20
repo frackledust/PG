@@ -103,7 +103,7 @@ void SimpleGuiDX11::Producer()
 		// compute rendering
 		//std::this_thread::sleep_for( std::chrono::milliseconds( 50 ) );
         std::cout << "Producer started" << std::endl;
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for
 		for ( int y = 0; y < height_; ++y )
 		{		
 			for ( int x = 0; x < width_; ++x )
@@ -115,18 +115,20 @@ void SimpleGuiDX11::Producer()
 				local_data[offset + 1] = pixel.g;
 				local_data[offset + 2] = pixel.b;
 				local_data[offset + 3] = pixel.a;
-				//pixel.copy( local_data[offset] );
-			}
+                {
+                    memcpy(tex_data_ + offset, local_data + offset, 4 * sizeof(float));
+                }
+            }
 		}
         //Measure end time
         std::chrono::duration<float> duration = std::chrono::high_resolution_clock::now() - t1;
         std::cout << "Producer finished in " << duration.count() << " seconds" << std::endl;
 
-		// write rendering results
-		{
-			std::lock_guard<std::mutex> lock( tex_data_lock_ );
-			memcpy( tex_data_, local_data, width_ * height_ * 4 * sizeof( float ) );			
-		} // lock release
+//		// write rendering results
+//		{
+//			std::lock_guard<std::mutex> lock( tex_data_lock_ );
+//			memcpy( tex_data_, local_data, width_ * height_ * 4 * sizeof( float ) );
+//		} // lock release
 	}
 
 	delete[] local_data;

@@ -1,3 +1,4 @@
+#include <iostream>
 #include "stdafx.h"
 #include "camera.h"
 #include "material.h"
@@ -83,6 +84,8 @@ void Camera::Rotate(const float angle) {
 
     view_from_ = translated;
     SetTransformationMatrix();
+
+    std::cout << "Camera position: " << view_from_.x << " " << view_from_.y << std::endl;
 }
 
 Vector3 Camera::GetViewFrom() const {
@@ -96,4 +99,6 @@ void Camera::Move(const float distance) {
     translated *= distance;
     view_from_ += translated;
     SetTransformationMatrix();
+
+    std::cout << "Camera position: " << view_from_.x << " " << view_from_.y << std::endl;
 }

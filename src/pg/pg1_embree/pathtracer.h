@@ -6,20 +6,13 @@
 #include "SphereMap.h"
 #include "BVH.h"
 
-/*! \class Raytracer
-\brief General ray tracer class.
-
-\author Tomáš Fabián
-\version 0.1
-\date 2018
-*/
-class Raytracer : public SimpleGuiDX11
+class Pathtracer : public SimpleGuiDX11
 {
 public:
-	Raytracer( const int width, const int height,
+	Pathtracer( int width, const int height,
 		const float fov_y, const Vector3 view_from, const Vector3 view_at,
 		const char * config = "threads=0,verbose=3" );
-	~Raytracer();
+	~Pathtracer();
 
 	int InitDeviceAndScene( const char * config );
 
@@ -51,13 +44,9 @@ private:
 
     Vector3 trace(Ray ray, int depth);
 
-    Vector3
-    get_color_phong(Ray &ray, Vector3 hit_point, Vector3 omni_light_position, Vector3 normal, Vector3 v, Vector3 l,
-                    int depth, Material *material);
+    Vector3 sample_cosine_hemisphere(Normal3f vector3);
 
-    Vector3 get_color_lambert(Ray &ray, Vector3 normal, Vector3 l, Material *material);
+    Vector3 sample_hemisphere(Normal3f normal, float &pdf);
 
-    Vector3 get_color_glass(Ray &ray, Vector3 normal, Vector3 v, Vector3 l, int depth, Material *material);
-
-    Vector3 get_color_mirror(Ray &ray, Vector3 normal, Vector3 v, Vector3 l, int depth, Material *material);
+    Vector3 sample_cosine_hemisphere(Normal3f normal, float &pdf);
 };

@@ -4,6 +4,7 @@
 #include "structs.h"
 #include "texture.h"
 #include "mymath.h"
+#include "pathtracer.h"
 
 /* error reporting function */
 void error_handler( void * user_ptr, const RTCError code, const char * str )
@@ -219,13 +220,18 @@ int tutorial_2()
 int tutorial_3( const std::string file_name, const char * config )
 {
 
-	Raytracer raytracer( 640, 480, deg2rad( 45.0 ),
-		Vector3( 150, -110, 130 ), Vector3( 0, 0, 35 ), config );
-	raytracer.LoadScene( file_name );
+//	Raytracer raytracer( 640, 480, deg2rad( 45.0 ),
+//		Vector3( 150, -110, 130 ), Vector3( 0, 0, 35 ), config );
+//	raytracer.LoadScene( file_name );
 
 //    Raytracer raytracer( 640, 480, deg2rad( 45.0 ),
 //                         Vector3( 3, -3, 1 ), Vector3( 0, 0, 0 ), config );
 //    raytracer.LoadScene("data/geosphere.obj");
+
+    Pathtracer raytracer( 640, 480, deg2rad( 45.0 ),
+                         Vector3( 42.0108, -721.186, 250), Vector3( 0, 0, 250 ), config );
+    raytracer.LoadScene( "data/cornell_box2/cornell_box2.obj");
+
     raytracer.LoadBackground();
 	raytracer.MainLoop();
 
