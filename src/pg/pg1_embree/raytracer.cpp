@@ -174,6 +174,9 @@ bool Raytracer::is_visible(const Vector3 hit_point, const Vector3 light_point){
     Ray ray(hit_point, l, 0.001f);
     ray.set_tfar(dist);
     ray.intersect(scene_);
+    if(Ray::BVH_BOOL){
+        bvh_->Traverse(ray);
+    }
     return !ray.has_hit();
 }
 
