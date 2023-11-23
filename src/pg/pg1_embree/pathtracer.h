@@ -30,6 +30,8 @@ private:
 	std::vector<Material *> materials_;
     std::unique_ptr<SphereMap> background_;
     std::unique_ptr<BVH> bvh_;
+    float * buffer_data;
+    int * buffer_count;
 
 	RTCDevice device_;
 	RTCScene scene_;
@@ -43,8 +45,6 @@ private:
     Ray make_secondary_ray(const Vector3 &origin, const Vector3 &dir, float ior);
 
     Vector3 trace(Ray ray, int depth);
-
-    Vector3 sample_cosine_hemisphere(Normal3f vector3);
 
     Vector3 sample_hemisphere(Normal3f normal, float &pdf);
 

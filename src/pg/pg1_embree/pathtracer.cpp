@@ -13,7 +13,10 @@ Pathtracer::Pathtracer(const int width, const int height,
 	const char* config) : SimpleGuiDX11(width, height)
 {
 	InitDeviceAndScene(config);
-
+    buffer_data = new float[width*height * 4];
+    buffer_count = new int[width*height];
+    memset(buffer_data, 0, width*height * 4 * sizeof(float));
+    memset(buffer_count, 0, width*height * sizeof(int));
 	camera_ = Camera(width, height, fov_y, view_from, view_at);
 }
 
@@ -183,12 +186,14 @@ void Pathtracer::LoadBackground() {
 }
 
 Ray Pathtracer::make_secondary_ray(const Vector3& origin, const Vector3& dir, const float ior) {
-    return Ray{origin, dir, 0.001f, ior};
+    return Ray{origin, dir, 0.01f, ior};
 }
 
 Color4f Pathtracer::get_pixel(const int x, const int y, const float t)
 {
     int sample_count = 2;
+    int total_samples = sample_count * sample_count;
+
     Vector3 acc = {0, 0, 0};
     for (int i = 0; i < sample_count; i++) {
         for (int j = 0; j < sample_count; j++) {
@@ -200,13 +205,29 @@ Color4f Pathtracer::get_pixel(const int x, const int y, const float t)
             acc += result;
         }
     }
-    acc /= (sample_count * sample_count);
-    return static_cast<Color4f>(acc);
+    acc /= total_samples;
+
+    auto result = static_cast<Color4f>(acc);
+
+    const int offset = ( y * width_ + x ) * 4;
+    const int count_offset = y * width_ + x;
+    Color4f pixel_old = {buffer_data[offset], buffer_data[offset + 1], buffer_data[offset + 2], buffer_data[offset + 3]};
+
+    result = (pixel_old * buffer_count[count_offset] + result * total_samples) /
+            (buffer_count[count_offset] + total_samples);
+
+    buffer_data[offset] = result.r;
+    buffer_data[offset + 1] = result.g;
+    buffer_data[offset + 2] = result.b;
+    buffer_data[offset + 3] = result.a;
+    buffer_count[count_offset] += total_samples;
+
+    return result;
 }
 
 
 Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
-    if(depth >= 10){
+    if(depth >= 20){
         return {0, 0, 0};
     }
 
@@ -243,10 +264,10 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
     // Get light incoming from secondary ray
     Vector3 L_i = trace(secondary_ray, depth + 1);
 
-    float cos_theta = clamp(normal.DotProduct(omega_i));
+    float cos_theta = omega_i.DotProduct(normal);
 
     // LAMBERT
-    Vector3 f_r = cos_theta * material->reflectivity * material->diffuse / M_PI;             //f_r := Albedo / pi
+    Vector3 f_r = material->diffuse * material->diffuse / M_PI;             //f_r := Albedo / pi
     Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf );
     return L_r;
 }

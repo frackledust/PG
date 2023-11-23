@@ -228,8 +228,10 @@ int tutorial_3( const std::string file_name, const char * config )
 //                         Vector3( 3, -3, 1 ), Vector3( 0, 0, 0 ), config );
 //    raytracer.LoadScene("data/geosphere.obj");
 
-    Pathtracer raytracer( 640, 480, deg2rad( 45.0 ),
-                         Vector3( 42.0108, -721.186, 250), Vector3( 0, 0, 250 ), config );
+//    Pathtracer raytracer( 640, 480, deg2rad( 45.0 ),
+//                         Vector3( 42.0108, -721.186, 250), Vector3( 0, 0, 250 ), config );
+
+    Pathtracer raytracer( 320, 240, deg2rad( 40.0 ), Vector3( 40, -940, 250 ), Vector3( 0, 0, 250 ) );
     raytracer.LoadScene( "data/cornell_box2/cornell_box2.obj");
 
     raytracer.LoadBackground();

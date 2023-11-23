@@ -5,7 +5,7 @@
 #include "ray.h"
 #include "embree3/rtcore_scene.h"
 
-bool Ray::BVH_BOOL = true;
+bool Ray::BVH_BOOL = false;
 
 void Ray::intersect(RTCScene _scene) {
     this->scene = std::make_shared<RTCScene>(_scene);

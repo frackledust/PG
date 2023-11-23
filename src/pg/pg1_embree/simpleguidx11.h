@@ -33,7 +33,8 @@ protected:
 
 	bool vsync_{ true };
 
-private:	
+    int width_{ 640 };
+private:
 	WNDCLASSEX wc_;
 	HWND hwnd_;
 
@@ -44,10 +45,9 @@ private:
 
 	ID3D11Texture2D * tex_id_{ nullptr };
 	ID3D11ShaderResourceView * tex_view_{nullptr};
-	int width_{ 640 };
-	int height_{ 480 };
+    int height_{ 480 };
 	float * tex_data_{ nullptr }; // DXGI_FORMAT_R32G32B32A32_FLOAT
 	std::mutex tex_data_lock_;
-		
+
 	std::atomic<bool> finish_request_{ false };	
 };

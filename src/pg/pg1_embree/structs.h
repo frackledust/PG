@@ -44,4 +44,17 @@ struct RTC_ALIGN( 16 ) Color4f
         b = expand(b, gamma);
         return *this;
     }
+
+    friend Color4f operator+( const Color4f & u, const Color4f & v ){
+        return {u.r + v.r, u.g + v.g, u.b + v.b, u.a + v.a};
+    }
+
+    friend Color4f operator/( const Color4f & u, const float & v ){
+        float a = 1.0f / v;
+        return {u.r * a, u.g * a, u.b * a, u.a * a};
+    }
+
+    friend Color4f operator*( const Color4f & u, const float & a ){
+        return {u.r * a, u.g * a, u.b * a, u.a * a};
+    }
 };
