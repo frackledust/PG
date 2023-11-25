@@ -165,6 +165,8 @@ public:
     Vector3 Reflect(Vector3 normal, bool to_hit_point = false) const;
 
     bool Refract(Vector3 normal, float n1, float n2, Vector3 &result) const;
+
+    float LargestComponentValue() const;
 };
 
 using Vertex3f = Vector3;

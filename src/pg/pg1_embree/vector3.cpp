@@ -58,6 +58,11 @@ float Vector3::DotProduct( const Vector3 & v ) const
 	return x * v.x + y * v.y + z * v.z;
 }
 
+float Vector3::LargestComponentValue() const
+{
+    return max( x, max( y, z ) );
+}
+
 char Vector3::LargestComponent( const bool absolute_value )
 {
 	const Vector3 d = ( absolute_value )? Vector3( abs( x ), abs( y ), abs( z ) ) : *this;

@@ -13,9 +13,9 @@ Pathtracer::Pathtracer(const int width, const int height,
 	const char* config) : SimpleGuiDX11(width, height)
 {
 	InitDeviceAndScene(config);
-    buffer_data = new float[width*height * 4];
+    buffer_data = new float[width*height * 3];
     buffer_count = new int[width*height];
-    memset(buffer_data, 0, width*height * 4 * sizeof(float));
+    memset(buffer_data, 0, width*height * 3 * sizeof(float));
     memset(buffer_count, 0, width*height * sizeof(int));
 	camera_ = Camera(width, height, fov_y, view_from, view_at);
 }
@@ -191,7 +191,7 @@ Ray Pathtracer::make_secondary_ray(const Vector3& origin, const Vector3& dir, co
 
 Color4f Pathtracer::get_pixel(const int x, const int y, const float t)
 {
-    int sample_count = 2;
+    int sample_count = 70;
     int total_samples = sample_count * sample_count;
 
     Vector3 acc = {0, 0, 0};
@@ -205,29 +205,26 @@ Color4f Pathtracer::get_pixel(const int x, const int y, const float t)
             acc += result;
         }
     }
-    acc /= total_samples;
 
-    auto result = static_cast<Color4f>(acc);
+    float * data = buffer_data + (y * width_ + x) * 3;
+    Vector3 buffered_color = {data[0], data[1], data[2]};
+    buffered_color += acc;
 
-    const int offset = ( y * width_ + x ) * 4;
-    const int count_offset = y * width_ + x;
-    Color4f pixel_old = {buffer_data[offset], buffer_data[offset + 1], buffer_data[offset + 2], buffer_data[offset + 3]};
+    int * count = buffer_count + (y * width_ + x);
+    int buffered_count = *count + total_samples;
 
-    result = (pixel_old * buffer_count[count_offset] + result * total_samples) /
-            (buffer_count[count_offset] + total_samples);
+    data[0] = buffered_color.x;
+    data[1] = buffered_color.y;
+    data[2] = buffered_color.z;
+    count[0] = buffered_count;
 
-    buffer_data[offset] = result.r;
-    buffer_data[offset + 1] = result.g;
-    buffer_data[offset + 2] = result.b;
-    buffer_data[offset + 3] = result.a;
-    buffer_count[count_offset] += total_samples;
-
-    return result;
+    Vector3 final_color = buffered_color / buffered_count;
+    return static_cast<Color4f>(final_color);
 }
 
 
 Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
-    if(depth >= 20){
+    if(depth >= 50){
         return {0, 0, 0};
     }
 
@@ -239,36 +236,77 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
     if(!ray.has_hit()){
         Vector3 ray_dir = ray.get_direction();
         Color3f bg_color = background_->texel(ray_dir.x, ray_dir.y, ray_dir.z);
-        return {bg_color};
+        //return {bg_color};
+        return {0, 0, 0};
     }
 
-    Material *material = ray.get_material();
-    Vector3 emission = material->emission;
-
-    if (emission.x > 0 || emission.y > 0 || emission.z > 0) {
-        return emission;
-    }
+    Vector3 d = ray.get_direction();
+    d.Normalize();
+    Vector3 v = -d;
 
     Normal3f normal = ray.get_normal();
-    const Vector3 d = ray.get_direction();
     normal.Normalize();
     if(normal.DotProduct(d) > 0.0f){
         normal = normal*(-1.0f);
     }
 
+    Material *material = ray.get_material();
+    Vector3 emission = material->emission;
+    if (emission.x > 0 || emission.y > 0 || emission.z > 0) {
+        return emission;
+    }
+
+    if(material->shader_id == ShaderID::Mirror){
+        Vector3 omega_i = v.Reflect(normal);
+        omega_i.Normalize();
+        Ray secondary_ray = make_secondary_ray(ray.get_hit_point(), omega_i, IOR_AIR);
+        Vector3 L_i = trace(secondary_ray, depth + 1);
+        return material->reflectivity * L_i;
+    }
+
+    if(material->shader_id == ShaderID::Phong){
+        float pdf;
+        Vector3 omega_i = sample_hemisphere(normal, pdf);
+        Ray secondary_ray = make_secondary_ray(ray.get_hit_point(), omega_i, IOR_AIR);
+        Vector3 L_i = trace(secondary_ray, depth + 1);
+
+        float cos_theta = omega_i.DotProduct(normal);
+
+        Vector3 omega_r = v.Reflect(normal);
+        float cos_theta_r = clamp(omega_i.DotProduct(omega_r));
+
+        // fresnel term
+//        float tmp = 1 - cos_theta_r;
+//        Vector3 F = material->specular + (Vector3(1, 1, 1) - material->specular)
+//                * tmp * tmp * tmp * tmp * tmp;
+//        Vector3 Rd = Vector3(1, 1, 1) - F / (Vector3(1, 1, 1) - material->specular)
+//                * (material->diffuse);
+
+        Vector3 f_r = material->diffuse / M_PI
+                + material->specular * (material->shininess + 2) / (2 * M_PI)
+                * powf(cos_theta_r, material->shininess);
+        Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf );
+        return L_r;
+    }
+
+    // LAMBERT
+    Vector3 diffuse_color = ray.get_diffuse_color();
+    // russian roulette
+    float alpha = diffuse_color.LargestComponentValue() / 255.0f;
+//    alpha = 1;
+    if(alpha <= Random(0, 1)){
+        return {0, 0, 0};
+    }
+
     float pdf;
     Vector3 omega_i = sample_hemisphere(normal, pdf);
     omega_i.Normalize();
-
     Ray secondary_ray = make_secondary_ray(ray.get_hit_point(), omega_i, IOR_AIR);
-    // Get light incoming from secondary ray
     Vector3 L_i = trace(secondary_ray, depth + 1);
 
     float cos_theta = omega_i.DotProduct(normal);
-
-    // LAMBERT
-    Vector3 f_r = material->diffuse * material->diffuse / M_PI;             //f_r := Albedo / pi
-    Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf );
+    Vector3 f_r = diffuse_color / M_PI;
+    Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf * alpha);
     return L_r;
 }
 
