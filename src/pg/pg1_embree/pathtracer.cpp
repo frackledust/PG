@@ -191,7 +191,7 @@ Ray Pathtracer::make_secondary_ray(const Vector3& origin, const Vector3& dir, co
 
 Color4f Pathtracer::get_pixel(const int x, const int y, const float t)
 {
-    int sample_count = 50;
+    int sample_count = 10;
     int total_samples = sample_count * sample_count;
 
     Vector3 acc = {0, 0, 0};
@@ -224,8 +224,8 @@ Color4f Pathtracer::get_pixel(const int x, const int y, const float t)
 
 
 Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
-    if(depth >= 5){
-        return {1, 0, 0};
+    if(depth >= 100){
+        return {0, 0, 0};
     }
 
     ray.intersect(scene_);
@@ -263,10 +263,10 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
         Vector3 L_i = trace(secondary_ray, depth + 1);
         return material->reflectivity * L_i;
     }
-/*
+
     if(material->shader_id == ShaderID::Phong){
         float pdf;
-        Vector3 omega_i = sample_hemisphere(normal, pdf);
+        Vector3 omega_i = sample_cosine_hemisphere(normal, pdf);
         Ray secondary_ray = make_secondary_ray(ray.get_hit_point(), omega_i, IOR_AIR);
         Vector3 L_i = trace(secondary_ray, depth + 1);
 
@@ -281,8 +281,8 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
         Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf );
         return L_r;
     }
-*/
 
+/*
     if(material->shader_id == ShaderID::Phong){
         Vector3 diffuse_color = {1, 1, 1};
         Vector3 specular_color = {1, 1, 1};
@@ -338,12 +338,12 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
             return L_r;
         }
     }
-
+*/
     // LAMBERT
     Vector3 diffuse_color = material->diffuse;
     // russian roulette
     float alpha = diffuse_color.LargestComponentValue();
-//    alpha = 1;
+    alpha = 1;
     if(alpha <= Random(0, 1)){
         return {0, 0, 0};
     }
@@ -387,12 +387,12 @@ Vector3 Pathtracer::sample_cosine_hemisphere(Normal3f normal, float &pdf) {
     float r1 = Random(0, 1);
     float r2 = Random(0, 1);
 
-    float sin_theta = sqrtf(1 - r1 * r1);
-    float phi = 2 * M_PI * r2;
+    float sin_theta = sqrtf(1 - r2);
+    float phi = 2 * M_PI * r1;
 
     float x = sin_theta * cosf(phi);
     float y = sin_theta * sinf(phi);
-    float z = r1;
+    float z = sqrt(r2);
 
     Vector3 result = {x, y, z};
     result.Normalize();
@@ -405,10 +405,12 @@ Vector3 Pathtracer::sample_cosine_hemisphere(Normal3f normal, float &pdf) {
     // Switch rows and columns
     T_rs.Transpose();
 
+    result = T_rs * result;
+
     float cos_theta = result.DotProduct(normal);
     pdf = cos_theta / M_PI;
 
-    return T_rs * result;
+    return result;
 }
 
 Vector3 Pathtracer::sample_cosine_lobe(Vector3 normal, float gamma, float &pdf) {
