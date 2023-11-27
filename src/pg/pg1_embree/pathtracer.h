@@ -49,4 +49,8 @@ private:
     Vector3 sample_hemisphere(Normal3f normal, float &pdf);
 
     Vector3 sample_cosine_hemisphere(Normal3f normal, float &pdf);
+
+    Vector3 sample_cosine_lobe(float gamma, float &pdf);
+
+    Vector3 sample_cosine_lobe(Vector3 normal, float gamma, float &pdf);
 };

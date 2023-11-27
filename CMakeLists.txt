@@ -37,9 +37,9 @@ add_executable(pg1
         ${OTHER}
         ${SOURCES})
 
-find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
-    target_link_libraries(pg1 OpenMP::OpenMP_CXX)
-endif()
+#find_package(OpenMP)
+#if(OpenMP_CXX_FOUND)
+#    target_link_libraries(pg1 OpenMP::OpenMP_CXX)
+#endif()
 
 target_link_libraries(pg1 d3d11 glfw3 embree3 FreeImaged d3d11 d3d12 d3dcompiler)

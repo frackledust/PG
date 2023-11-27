@@ -191,7 +191,7 @@ Ray Pathtracer::make_secondary_ray(const Vector3& origin, const Vector3& dir, co
 
 Color4f Pathtracer::get_pixel(const int x, const int y, const float t)
 {
-    int sample_count = 70;
+    int sample_count = 50;
     int total_samples = sample_count * sample_count;
 
     Vector3 acc = {0, 0, 0};
@@ -224,8 +224,8 @@ Color4f Pathtracer::get_pixel(const int x, const int y, const float t)
 
 
 Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
-    if(depth >= 50){
-        return {0, 0, 0};
+    if(depth >= 5){
+        return {1, 0, 0};
     }
 
     ray.intersect(scene_);
@@ -235,9 +235,9 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
 
     if(!ray.has_hit()){
         Vector3 ray_dir = ray.get_direction();
-        Color3f bg_color = background_->texel(ray_dir.x, ray_dir.y, ray_dir.z);
+        //Color3f bg_color = background_->texel(ray_dir.x, ray_dir.y, ray_dir.z);
         //return {bg_color};
-        return {0, 0, 0};
+        return {1, 1, 1};
     }
 
     Vector3 d = ray.get_direction();
@@ -263,7 +263,7 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
         Vector3 L_i = trace(secondary_ray, depth + 1);
         return material->reflectivity * L_i;
     }
-
+/*
     if(material->shader_id == ShaderID::Phong){
         float pdf;
         Vector3 omega_i = sample_hemisphere(normal, pdf);
@@ -275,31 +275,81 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
         Vector3 omega_r = v.Reflect(normal);
         float cos_theta_r = clamp(omega_i.DotProduct(omega_r));
 
-        // fresnel term
-//        float tmp = 1 - cos_theta_r;
-//        Vector3 F = material->specular + (Vector3(1, 1, 1) - material->specular)
-//                * tmp * tmp * tmp * tmp * tmp;
-//        Vector3 Rd = Vector3(1, 1, 1) - F / (Vector3(1, 1, 1) - material->specular)
-//                * (material->diffuse);
-
         Vector3 f_r = material->diffuse / M_PI
-                + material->specular * (material->shininess + 2) / (2 * M_PI)
-                * powf(cos_theta_r, material->shininess);
+                      + material->specular * (material->shininess + 2) / (2 * M_PI)
+                        * powf(cos_theta_r, material->shininess);
         Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf );
         return L_r;
     }
+*/
+
+    if(material->shader_id == ShaderID::Phong){
+        Vector3 diffuse_color = {1, 1, 1};
+        Vector3 specular_color = {1, 1, 1};
+
+
+
+        // BRDF-proportional importance sampling
+        float diffuse_max = diffuse_color.LargestComponentValue();
+        float specular_max = specular_color.LargestComponentValue();
+        float random_v = Random(0, diffuse_max + specular_max);
+
+        if(random_v < diffuse_max){
+            float pdf = 1;
+            Vector3 omega_i = sample_cosine_hemisphere(normal, pdf);
+            omega_i.Normalize();
+
+            Ray secondary_ray = make_secondary_ray(ray.get_hit_point(), omega_i, IOR_AIR);
+            Vector3 L_i = trace(secondary_ray, depth + 1);
+            pdf*= diffuse_max / (diffuse_max + specular_max);
+
+            Vector3 f_r = diffuse_color / M_PI;
+            float cos_theta = omega_i.DotProduct(normal);
+
+            Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf );
+            return L_r;
+        }
+        else{
+            float pdf = 1;
+            Vector3 r = v.Reflect(normal);
+            Vector3 omega_i = sample_cosine_lobe(r, material->shininess, pdf);
+            omega_i.Normalize();
+
+            if (omega_i.DotProduct(normal) < 0.0f){
+                return {0, 0, 0};
+            }
+
+            Ray secondary_ray = make_secondary_ray(ray.get_hit_point(), omega_i, IOR_AIR);
+            Vector3 L_i = trace(secondary_ray, depth + 1);
+
+            pdf*= specular_max / (diffuse_max + specular_max);
+
+            float cos_theta = omega_i.DotProduct(normal);
+//            version 2?
+//            float cos_theta = omega_i.DotProduct(normal);
+//            Vector3 omega_r = v.Reflect(normal);
+//            float cos_theta_r = clamp(omega_i.DotProduct(omega_r));
+
+
+            Vector3 f_r = specular_color * ((material->shininess) + 2 / 2 * M_PI);
+//            Vector3 f_r = specular_color * ((material->shininess) + 2 / 2 * M_PI) * powf(cos_theta_r, material->shininess);
+
+            Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf );
+            return L_r;
+        }
+    }
 
     // LAMBERT
-    Vector3 diffuse_color = ray.get_diffuse_color();
+    Vector3 diffuse_color = material->diffuse;
     // russian roulette
-    float alpha = diffuse_color.LargestComponentValue() / 255.0f;
+    float alpha = diffuse_color.LargestComponentValue();
 //    alpha = 1;
     if(alpha <= Random(0, 1)){
         return {0, 0, 0};
     }
 
     float pdf;
-    Vector3 omega_i = sample_hemisphere(normal, pdf);
+    Vector3 omega_i = sample_cosine_hemisphere(normal, pdf);
     omega_i.Normalize();
     Ray secondary_ray = make_secondary_ray(ray.get_hit_point(), omega_i, IOR_AIR);
     Vector3 L_i = trace(secondary_ray, depth + 1);
@@ -359,4 +409,28 @@ Vector3 Pathtracer::sample_cosine_hemisphere(Normal3f normal, float &pdf) {
     pdf = cos_theta / M_PI;
 
     return T_rs * result;
+}
+
+Vector3 Pathtracer::sample_cosine_lobe(Vector3 normal, float gamma, float &pdf) {
+    float r1 = Random(0, 1);
+    float r2 = Random(0, 1);
+
+    float x = cos(2 * M_PI * r1) * sqrt(1 - pow(r2, 2 / gamma + 1));
+    float y = sin(2 * M_PI * r1) * sqrt(1 - pow(r2, 2 / gamma + 1));
+    float z = pow(r2, 1 / gamma + 1);
+
+    Vector3 result = {x, y, z};
+    result.Normalize();
+
+//    Vector3 o2 = orthogonal(normal);
+//    Vector3 o1 = o2.CrossProduct(normal);
+//    Matrix3 T_rs = Matrix3x3(o1, o2, normal);
+//
+//    // Switch rows and columns
+//    T_rs.Transpose();
+//    result = T_rs * result;
+
+    pdf = (gamma + 1) / (2 * M_PI) * pow(result.z, gamma);
+
+    return result;
 }

@@ -26,17 +26,9 @@ v.Normalize();
 struct /*ALIGN*/ Vector3
 {
 public:
-	union	// anonymní unie
-	{
-		struct
-		{
-			float x; /*!< První složka vektoru. */
-			float y; /*!< Druhá složka vektoru. */
-			float z; /*!< Tøetí složka vektoru. */
-		};
-
-		float data[3]; /*!< Pole složek vektoru. */
-	};
+    float x; /*!< První složka vektoru. */
+    float y; /*!< Druhá složka vektoru. */
+    float z; /*!< Tøetí složka vektoru. */
 
 	//! Výchozí konstruktor.
 	/*!
@@ -159,7 +151,10 @@ public:
 	friend bool operator==( const Vector3 & u, const Vector3 & v );
 
     float &operator[](int i) {
-        return data[i];
+        if(i == 0) return x;
+        if(i == 1) return y;
+        if(i == 2) return z;
+        return x;
     }
 
     Vector3 Reflect(Vector3 normal, bool to_hit_point = false) const;
