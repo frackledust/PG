@@ -238,6 +238,7 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
         //Color3f bg_color = background_->texel(ray_dir.x, ray_dir.y, ray_dir.z);
         //return {bg_color};
         return {0, 0, 0};
+        //return {1, 1, 1};
     }
 
     Vector3 d = ray.get_direction();
@@ -283,9 +284,12 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
 
 Vector3 Pathtracer::get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_point,
                                    Vector3 diffuse_color, Vector3 specular_color, float shininess, int depth){
+    // energy normalized phong
 
     float diffuse_max = diffuse_color.LargestComponentValue();
     float specular_max = specular_color.LargestComponentValue();
+
+    // russian roulette
     float alpha = diffuse_max;
     if(alpha <= Random(0, 1)){
         return {0, 0, 0};
@@ -304,10 +308,8 @@ Vector3 Pathtracer::get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_
         pdf*= diffuse_max / (diffuse_max + specular_max);
 
         float cos_theta = omega_i.DotProduct(normal);
-        float cos_theta_r = clamp(omega_i.DotProduct(omega_r));
 
-        Vector3 f_r = diffuse_color / M_PI
-                + specular_color * (shininess + 2) / (2 * M_PI) * powf(cos_theta_r, shininess);
+        Vector3 f_r = diffuse_color / M_PI;
 
         Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf * alpha );
         return L_r;
@@ -325,7 +327,10 @@ Vector3 Pathtracer::get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_
     float cos_theta_r = clamp(omega_i.DotProduct(omega_r));
 
     float I_m = arvo_integrate_modified_phong(normal, omega_i, (int) round(shininess));
-    Vector3 f_r = diffuse_color / M_PI + specular_color * 1 / I_m * powf(cos_theta_r, shininess);
+    Vector3 f_r = specular_color * 1 / I_m * powf(cos_theta_r, shininess);
+
+    // add cosine denominator
+    //f_r = f_r / cos_theta;
 
     Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf * alpha );
     return L_r;
