@@ -47,8 +47,6 @@ private:
 
     static Vector3 sample_cosine_hemisphere(Normal3f normal, float &pdf);
 
-    static Vector3 sample_cosine_lobe(float gamma, float &pdf);
-
     static float arvo_integrate_modified_phong(Vector3 Normal, Vector3 omega_i, int n);
 
     Vector3 get_color_lambert(Vector3 diffuse_color, Normal3f normal, Vector3 hit_point, int depth);
@@ -64,4 +62,6 @@ private:
     Vector3
     get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_point, Vector3 diffuse_color, Vector3 specular_color,
                  float shininess, int depth);
+
+    Vector3 sample_cosine_lobe(Vector3 omega_r, float gamma, float &pdf);
 };
