@@ -37,20 +37,17 @@ private:
 	RTCScene scene_;
 	Camera camera_;
 
-    //    Vector3 omni_light_position_ = Vector3(100, 0, 130);
-    Vector3 omni_light_position_ = Vector3(0, 0, 485);
-
     bool is_visible(Vector3 hit_point, Vector3 light_point);
 
     Ray make_secondary_ray(const Vector3 &origin, const Vector3 &dir, float ior);
 
     Vector3 trace(Ray ray, int depth);
 
-    Vector3 sample_hemisphere(Normal3f normal, float &pdf);
+    static Vector3 sample_hemisphere(Normal3f normal, float &pdf);
 
-    Vector3 sample_cosine_hemisphere(Normal3f normal, float &pdf);
+    static Vector3 sample_cosine_hemisphere(Normal3f normal, float &pdf);
 
-    Vector3 sample_cosine_lobe(Vector3 normal, float gamma, float &pdf);
+    static Vector3 sample_cosine_lobe(float gamma, float &pdf);
 
     static float arvo_integrate_modified_phong(Vector3 Normal, Vector3 omega_i, int n);
 

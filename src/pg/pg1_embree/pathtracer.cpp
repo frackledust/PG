@@ -237,8 +237,8 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
         Vector3 ray_dir = ray.get_direction();
         //Color3f bg_color = background_->texel(ray_dir.x, ray_dir.y, ray_dir.z);
         //return {bg_color};
-        return {0, 0, 0};
-        //return {1, 1, 1};
+        return {0.9, 0.9, 0.9};
+//        return {1, 1, 1};
     }
 
     Vector3 d = ray.get_direction();
@@ -274,8 +274,8 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
 //        return get_phong_LW(normal, v, hit_point, material->diffuse,
 //                            material->specular, material->shininess, depth);
 
-        return get_phong_arvo(normal, v, hit_point, material->diffuse,
-                              material->specular, material->shininess, depth);
+//        return get_phong_arvo(normal, v, hit_point, material->diffuse,
+//                              material->specular, material->shininess, depth);
     }
 
     // LAMBERT
@@ -290,12 +290,10 @@ Vector3 Pathtracer::get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_
     float specular_max = specular_color.LargestComponentValue();
 
     // russian roulette
-    float alpha = diffuse_max;
+    float alpha = max(diffuse_max, specular_max);
     if(alpha <= Random(0, 1)){
         return {0, 0, 0};
     }
-
-    Vector3 omega_r = omega_o.Reflect(normal);
 
     float random_v = Random(0, diffuse_max + specular_max);
     if(random_v < diffuse_max){
@@ -316,7 +314,11 @@ Vector3 Pathtracer::get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_
     }
 
     float pdf;
-    Vector3 omega_i = sample_cosine_hemisphere(normal, pdf);
+    Vector3 omega_r = omega_o.Reflect(normal);
+    Vector3 omega_i = sample_cosine_lobe(shininess, pdf);
+    if(omega_i.DotProduct(normal) < 0.0f){
+        return {0, 0, 0};
+    }
 
     Ray secondary_ray = make_secondary_ray(hit_point, omega_i, IOR_AIR);
     Vector3 L_i = trace(secondary_ray, depth + 1);
@@ -340,14 +342,18 @@ Vector3 Pathtracer::get_phong_LW(Vector3 normal, Vector3 omega_o, Vector3 hit_po
                                   Vector3 diffuse_color, Vector3 specular_color, float shininess, int depth){
     // TO DO: NOT WORKING
     float diffuse_max = diffuse_color.LargestComponentValue();
-
     float specular_max = specular_color.LargestComponentValue();
-    float random_v = Random(0, diffuse_max + specular_max);
 
+    // russian roulette
+    float alpha = max(diffuse_max, specular_max);
+    if(alpha <= Random(0, 1)){
+        return {0, 0, 0};
+    }
+
+    float random_v = Random(0, diffuse_max + specular_max);
     if(random_v < diffuse_max){
          float pdf;
          Vector3 omega_i = sample_cosine_hemisphere(normal, pdf);
-         omega_i.Normalize();
 
          Ray secondary_ray = make_secondary_ray(hit_point, omega_i, IOR_AIR);
          Vector3 L_i = trace(secondary_ray, depth + 1);
@@ -356,15 +362,13 @@ Vector3 Pathtracer::get_phong_LW(Vector3 normal, Vector3 omega_o, Vector3 hit_po
          Vector3 f_r = diffuse_color / M_PI;
          float cos_theta = omega_i.DotProduct(normal);
 
-         Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf);
+         Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf * alpha);
          return L_r;
     }
 
-
      float pdf;
-    Vector3 omega_r = omega_o.Reflect(normal);
-     Vector3 omega_i = sample_cosine_lobe(normal, shininess, pdf);
-     omega_i.Normalize();
+     Vector3 omega_r = omega_o.Reflect(normal);
+     Vector3 omega_i = sample_cosine_lobe(shininess, pdf);
 
      if (omega_i.DotProduct(normal) < 0.0f){
          return {0, 0, 0};
@@ -375,18 +379,15 @@ Vector3 Pathtracer::get_phong_LW(Vector3 normal, Vector3 omega_o, Vector3 hit_po
 
      pdf*= specular_max / (diffuse_max + specular_max);
 
-//   float cos_theta = omega_i.DotProduct(normal);
-//   version 2?
      float cos_theta = omega_i.DotProduct(normal);
      float cos_theta_r = clamp(omega_i.DotProduct(omega_r));
 
+     Vector3 f_r = (specular_color * (shininess + 2)) / (2 * M_PI) * powf(cos_theta_r, shininess);
 
-     //Vector3 f_r = specular_color * ((material->shininess + 2) / 2 * M_PI);
-     //Vector3 f_r = specular_color * ((material->shininess + 2) / (2 * M_PI)) * powf(cos_theta_r, material->shininess);
-     Vector3 f_r = diffuse_color / M_PI
-                   + (specular_color * (shininess + 2)) / (2 * M_PI) * powf(cos_theta_r, shininess);
+    // add cosine denominator
+    //f_r = f_r / cos_theta;
 
-     Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf);
+     Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf * alpha);
      return L_r;
 }
 
@@ -482,24 +483,16 @@ Vector3 Pathtracer::sample_cosine_hemisphere(Normal3f normal, float &pdf) {
     return result;
 }
 
-Vector3 Pathtracer::sample_cosine_lobe(Vector3 normal, float gamma, float &pdf) {
+Vector3 Pathtracer::sample_cosine_lobe(float gamma, float &pdf) {
     float r1 = Random(0, 1);
     float r2 = Random(0, 1);
 
-    float x = cos(2 * M_PI * r1) * sqrt(1 - pow(r2, 2 / gamma + 1));
-    float y = sin(2 * M_PI * r1) * sqrt(1 - pow(r2, 2 / gamma + 1));
-    float z = pow(r2, 1 / gamma + 1);
+    float x = cos(2 * M_PI * r1) * sqrt(1 - pow(r2, 2 / (gamma + 1)));
+    float y = sin(2 * M_PI * r1) * sqrt(1 - pow(r2, 2 / (gamma + 1)));
+    float z = pow(r2, 1 / (gamma + 1));
 
     Vector3 result = {x, y, z};
     result.Normalize();
-
-//    Vector3 o2 = orthogonal(normal);
-//    Vector3 o1 = o2.CrossProduct(normal);
-//    Matrix3 T_rs = Matrix3x3(o1, o2, normal);
-//
-//    // Switch rows and columns
-//    T_rs.Transpose();
-//    result = T_rs * result;
 
     pdf = (gamma + 1) / (2 * M_PI) * pow(result.z, gamma);
 
