@@ -23,6 +23,8 @@ public:
     std::shared_ptr<RTCScene> scene;
     std::shared_ptr<BVHHitPoint> bvh_hit_point;
 
+    bool nne_has_hit_light = false;
+
     Ray(){
         ray_hit.ray.org_x = 0.0f;
         ray_hit.ray.org_y = 0.0f;

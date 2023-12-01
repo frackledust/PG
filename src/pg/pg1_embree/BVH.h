@@ -45,11 +45,17 @@ public:
     unsigned int geom_id;
     Material* material;
     std::shared_ptr<BVHBbox> bbox = nullptr;
+    float area = 0;
 
-    BVHTriangle(Vertex a, Vertex b, Vertex c){
-        vertices_[0] = a;
-        vertices_[1] = b;
-        vertices_[2] = c;
+    BVHTriangle(Vertex a, Vertex b, Vertex c, unsigned int geom_id, Material* material){
+        this->vertices_[0] = a;
+        this->vertices_[1] = b;
+        this->vertices_[2] = c;
+        this->geom_id = geom_id;
+        this->material = material;
+
+        this->calculate_bbox();
+        this->calculate_area();
     }
 
     Vector3 get_center(){
@@ -69,6 +75,7 @@ public:
         return coords;
     }
 
+    void calculate_area();
     void calculate_bbox();
 
     std::shared_ptr<BVHBbox> get_bbox(){

@@ -12,6 +12,8 @@ enum ShaderID{
     Lambert = 2,
     Phong = 3,
     Glass = 4,
+    PhongConserving = 5,
+    PhongNormalized = 6,
 };
 
 /*! \def NO_TEXTURES

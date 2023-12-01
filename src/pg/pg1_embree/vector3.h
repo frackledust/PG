@@ -149,6 +149,9 @@ public:
 	friend void operator/=( Vector3 & v, const float a );		
 
 	friend bool operator==( const Vector3 & u, const Vector3 & v );
+    friend bool operator!=( const Vector3 & u, const Vector3 & v );
+    friend bool operator<( const Vector3 & u, const Vector3 & v );
+    friend bool operator>( const Vector3 & u, const Vector3 & v );
 
     float &operator[](int i) {
         if(i == 0) return x;

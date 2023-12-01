@@ -105,10 +105,9 @@ void Raytracer::LoadScene(const std::string file_name)
             //TODO: create BVH
             std::shared_ptr<BVHTriangle> bvh_triangle = std::make_shared<BVHTriangle>(triangle.vertex(0),
                                                                                       triangle.vertex(1),
-                                                                                      triangle.vertex(2));
-            bvh_triangle->geom_id = geom_id;
-            bvh_triangle->material = surface->get_material();
-            bvh_triangle->calculate_bbox();
+                                                                                      triangle.vertex(2),
+                                                                                      geom_id,
+                                                                                      surface->get_material());
             bvh_triangles.push_back(bvh_triangle);
 		} // end of triangles loop
 

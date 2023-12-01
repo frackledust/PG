@@ -107,14 +107,18 @@ void Pathtracer::LoadScene(const std::string file_name)
 			triangles[i].v1 = k - 2;
 			triangles[i].v2 = k - 1;
 
-            //TODO: create BVH
             std::shared_ptr<BVHTriangle> bvh_triangle = std::make_shared<BVHTriangle>(triangle.vertex(0),
                                                                                       triangle.vertex(1),
-                                                                                      triangle.vertex(2));
-            bvh_triangle->geom_id = geom_id;
-            bvh_triangle->material = surface->get_material();
-            bvh_triangle->calculate_bbox();
+                                                                                      triangle.vertex(2),
+                                                                                      geom_id,
+                                                                                      surface->get_material());
             bvh_triangles.push_back(bvh_triangle);
+
+            if(bvh_triangle->material->emission != Vector3(0, 0, 0)){
+                auto light = std::make_shared<TriangleLight>();
+                light->triangle = bvh_triangle;
+                lights_.push_back(light);
+            }
 		} // end of triangles loop
 
 		rtcCommitGeometry(mesh);
@@ -123,6 +127,8 @@ void Pathtracer::LoadScene(const std::string file_name)
 
     bvh_ = std::make_unique<BVH>(bvh_triangles);
     bvh_->BuildTree();
+
+    TriangleLight::calculate_cdf(lights_);
 
 	rtcCommitScene(scene_);
 }
@@ -224,7 +230,7 @@ Color4f Pathtracer::get_pixel(const int x, const int y, const float t)
 }
 
 
-Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
+Vector3 Pathtracer::trace(Ray &ray, const int depth = 0) {
     if(depth >= 100){
         return {0, 0, 0};
     }
@@ -255,10 +261,16 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
     Material *material = ray.get_material();
     Vector3 emission = material->emission;
     if (emission.x > 0 || emission.y > 0 || emission.z > 0) {
+        ray.nne_has_hit_light = true;
         return emission;
     }
 
     Vector3 hit_point = ray.get_hit_point();
+
+//    if(TriangleLight::NNE){
+//        return get_color_nne(normal, v, hit_point, material->diffuse,
+//                             material->specular, material->shininess, depth);
+//    }
 
     if(material->shader_id == ShaderID::Mirror){
         Vector3 omega_i = v.Reflect(normal);
@@ -269,18 +281,53 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
     }
 
     if(material->shader_id == ShaderID::Phong){
-//        return get_phong_simple(normal, v, hit_point,material->diffuse,
-//                                material->specular, material->shininess, depth);
+        return get_phong_simple(normal, v, hit_point,material->diffuse,
+                                material->specular, material->shininess, depth);
+    }
 
+    if(material->shader_id == ShaderID::PhongConserving){
         return get_phong_LW(normal, v, hit_point, material->diffuse,
-                            material->specular, material->shininess, depth);
+                              material->specular, material->shininess, depth);
+    }
 
-//        return get_phong_arvo(normal, v, hit_point, material->diffuse,
-//                              material->specular, material->shininess, depth);
+    if(material->shader_id == ShaderID::PhongNormalized){
+        return get_phong_arvo(normal, v, hit_point, material->diffuse,
+                              material->specular, material->shininess, depth);
     }
 
     // LAMBERT
     return get_color_lambert(material->diffuse, normal, ray.get_hit_point(), depth);
+}
+
+Vector3 Pathtracer::get_color_nne(Vector3 normal, Vector3 omega_o, Vector3 hit_point,
+                                  Vector3 diffuse_color, Vector3 specular_color, float shininess, int depth){
+
+    Vector3 L_direct = get_direct_light_color(hit_point, normal);
+
+    // ---------------------------------------------------------------------------------------------------
+
+    // russian roulette
+    float alpha = diffuse_color.LargestComponentValue();
+    if(alpha <= Random(0, 1)){
+        return {0, 0, 0};
+    }
+
+    float pdf;
+    Vector3 omega_i = sample_cosine_hemisphere(normal, pdf);
+    Ray secondary_ray = make_secondary_ray(hit_point, omega_i, IOR_AIR);
+    Vector3 L_i = trace(secondary_ray, depth + 1);
+
+    if(TriangleLight::NNE && secondary_ray.nne_has_hit_light && (L_direct > Vector3(0, 0, 0))){
+        return {0, 0, 0};
+    }
+
+    float cos_theta = omega_i.DotProduct(normal);
+    Vector3 f_r = diffuse_color / M_PI;
+    Vector3 L_indirect = L_i * f_r * (cos_theta) / ( pdf * alpha);
+
+    // ---------------------------------------------------------------------------------------------------
+    Vector3 L_r = L_direct + L_indirect;
+    return L_r;
 }
 
 Vector3 Pathtracer::get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_point,
@@ -563,4 +610,32 @@ void Pathtracer::fresnel_reflectance(Vector3 diffuse, Vector3 specular, float co
     Rd = (1 - F.LargestComponentValue()) / (1 - specular.LargestComponentValue()) * diffuse;
 
     assert((F + Rd) < ones);
+}
+
+Vector3 Pathtracer::get_direct_light_color(Vector3 hit_point, Vector3 normal){
+    // get random light
+    float random_cdf = Random(0, 1);
+    std::shared_ptr<TriangleLight> light = TriangleLight::get_light(random_cdf, lights_);
+
+    // get random point on light
+    float pdf;
+    Vector3 light_normal;
+    Vector3 light_point = light->get_random_point(pdf, light_normal);
+
+    // check if light is visible
+    if(!is_visible(hit_point, light_point)){
+        return {0, 0, 0};
+    }
+
+    // get direction to light
+    Vector3 l = light_point - hit_point;
+    l.Normalize();
+
+    // get BRDF
+    float theta_i = l.DotProduct(normal);
+    float theta_y = (-l).DotProduct(light_normal);
+    float G = clamp((theta_i * theta_y) / l.SqrL2Norm());
+
+    Vector3 result = light->get_color() * G * pdf;
+    return result;
 }

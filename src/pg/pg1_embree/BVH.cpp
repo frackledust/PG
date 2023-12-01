@@ -139,3 +139,10 @@ void BVHTriangle::calculate_bbox() {
     bbox->border_min = v_min;
     bbox->border_max = v_max;
 }
+
+void BVHTriangle::calculate_area(){
+    Vector3 u = vertices_[0].position - vertices_[1].position;
+    Vector3 v = vertices_[0].position - vertices_[2].position;
+    area = 0.5f * u.CrossProduct(v).L2Norm();
+}
+

@@ -5,6 +5,7 @@
 #include "ray.h"
 #include "SphereMap.h"
 #include "BVH.h"
+#include "TriangleLight.h"
 
 class Pathtracer : public SimpleGuiDX11
 {
@@ -30,6 +31,8 @@ private:
 	std::vector<Material *> materials_;
     std::unique_ptr<SphereMap> background_;
     std::unique_ptr<BVH> bvh_;
+    std::vector<std::shared_ptr<TriangleLight>> lights_;
+
     float * buffer_data;
     int * buffer_count;
 
@@ -41,7 +44,7 @@ private:
 
     Ray make_secondary_ray(const Vector3 &origin, const Vector3 &dir, float ior);
 
-    Vector3 trace(Ray ray, int depth);
+    Vector3 trace(Ray &ray, int depth);
 
     static Vector3 sample_hemisphere(Normal3f normal, float &pdf);
 
@@ -51,19 +54,21 @@ private:
 
     Vector3 get_color_lambert(Vector3 diffuse_color, Normal3f normal, Vector3 hit_point, int depth);
 
-    Vector3
-    get_phong_simple(Normal3f normal, Vector3 omega_o, Vector3 hit_point, Vector3 diffuse_color, Vector3 specular_color,
-                     float shininess, int depth);
+    Vector3 get_phong_simple(Normal3f normal, Vector3 omega_o, Vector3 hit_point, Vector3 diffuse_color,
+                             Vector3 specular_color, float shininess, int depth);
 
-    Vector3
-    get_phong_LW(Vector3 normal, Vector3 omega_o, Vector3 hit_point, Vector3 diffuse_color, Vector3 specular_color,
-                 float shininess, int depth);
+    Vector3 get_phong_LW(Vector3 normal, Vector3 omega_o, Vector3 hit_point, Vector3 diffuse_color,
+                         Vector3 specular_color, float shininess, int depth);
 
-    Vector3
-    get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_point, Vector3 diffuse_color, Vector3 specular_color,
-                 float shininess, int depth);
+    Vector3 get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_point, Vector3 diffuse_color,
+                           Vector3 specular_color, float shininess, int depth);
 
     Vector3 sample_cosine_lobe(Vector3 omega_r, float gamma, float &pdf);
 
     static void fresnel_reflectance(Vector3 diffuse, Vector3 specular, float cos_theta, Vector3 &F, Vector3 &Rd);
+
+    Vector3 get_direct_light_color(Vector3 hit_point, Vector3 normal);
+
+    Vector3 get_color_nne(Vector3 normal, Vector3 omega_o, Vector3 hit_point, Vector3 diffuse_color,
+                          Vector3 specular_color, float shininess, int depth);
 };
