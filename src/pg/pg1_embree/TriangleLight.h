@@ -30,7 +30,7 @@ public:
         Vector3 p1 = triangle->vertices_[1].position;
         Vector3 p2 = triangle->vertices_[2].position;
 
-        pdf = 1 / triangle->area;
+        pdf = triangle->area;
         normal = triangle->get_normal(u, v);
 
         return p0 * u + p1 * v + p2 * w;
@@ -43,6 +43,8 @@ public:
     static void calculate_cdf(std::vector<std::shared_ptr<TriangleLight>> lights);
 
     static std::shared_ptr<TriangleLight> get_light(float value, std::vector<std::shared_ptr<TriangleLight>> lights);
+
+    static float TotalLightArea;
 };
 
 

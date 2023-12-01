@@ -13,12 +13,12 @@ Vector3::Vector3( const float * v )
 
 float Vector3::L2Norm() const
 {
-	return sqrt( sqr( x ) + sqr( y ) + sqr( z ) );
+	return sqrt( x*x + y*y + z*z);
 }
 
 float Vector3::SqrL2Norm() const
 {
-	return sqr( x ) + sqr( y ) + sqr( z );
+	return x*x + y*y + z*z;
 }
 
 void Vector3::Normalize()

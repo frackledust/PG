@@ -267,10 +267,10 @@ Vector3 Pathtracer::trace(Ray &ray, const int depth = 0) {
 
     Vector3 hit_point = ray.get_hit_point();
 
-//    if(TriangleLight::NNE){
-//        return get_color_nne(normal, v, hit_point, material->diffuse,
-//                             material->specular, material->shininess, depth);
-//    }
+    if(TriangleLight::NNE){
+        return get_color_nne(normal, v, hit_point, material->diffuse,
+                             material->specular, material->shininess, depth);
+    }
 
     if(material->shader_id == ShaderID::Mirror){
         Vector3 omega_i = v.Reflect(normal);
@@ -302,7 +302,7 @@ Vector3 Pathtracer::trace(Ray &ray, const int depth = 0) {
 Vector3 Pathtracer::get_color_nne(Vector3 normal, Vector3 omega_o, Vector3 hit_point,
                                   Vector3 diffuse_color, Vector3 specular_color, float shininess, int depth){
 
-    Vector3 L_direct = get_direct_light_color(hit_point, normal);
+    Vector3 L_direct = get_direct_light_color(hit_point, normal, diffuse_color);
 
     // ---------------------------------------------------------------------------------------------------
 
@@ -530,9 +530,6 @@ Vector3 Pathtracer::sample_cosine_hemisphere(Normal3f normal, float &pdf) {
     Vector3 o1 = o2.CrossProduct(normal);
     Matrix3 T_rs = Matrix3x3(o1, o2, normal);
 
-    // Switch rows and columns
-    T_rs.Transpose();
-
     result = T_rs * result;
 
     float cos_theta = result.DotProduct(normal);
@@ -558,9 +555,6 @@ Vector3 Pathtracer::sample_cosine_lobe(Vector3 omega_r, float gamma, float &pdf)
     Vector3 o2 = orthogonal(omega_r);
     Vector3 o1 = o2.CrossProduct(omega_r);
     Matrix3 T_rs = Matrix3x3(o1, o2, omega_r);
-
-    // Switch rows and columns
-    T_rs.Transpose();
 
     result = T_rs * result;
 
@@ -612,15 +606,15 @@ void Pathtracer::fresnel_reflectance(Vector3 diffuse, Vector3 specular, float co
     assert((F + Rd) < ones);
 }
 
-Vector3 Pathtracer::get_direct_light_color(Vector3 hit_point, Vector3 normal){
+Vector3 Pathtracer::get_direct_light_color(Vector3 hit_point, Vector3 hit_normal, Vector3 diffuse_color){
     // get random light
     float random_cdf = Random(0, 1);
     std::shared_ptr<TriangleLight> light = TriangleLight::get_light(random_cdf, lights_);
 
     // get random point on light
-    float pdf;
+    float area;
     Vector3 light_normal;
-    Vector3 light_point = light->get_random_point(pdf, light_normal);
+    Vector3 light_point = light->get_random_point(area, light_normal);
 
     // check if light is visible
     if(!is_visible(hit_point, light_point)){
@@ -628,14 +622,20 @@ Vector3 Pathtracer::get_direct_light_color(Vector3 hit_point, Vector3 normal){
     }
 
     // get direction to light
-    Vector3 l = light_point - hit_point;
-    l.Normalize();
+    Vector3 omega_i = light_point - hit_point;
+    float distance_squared = omega_i.SqrL2Norm();
+    omega_i.Normalize();
 
     // get BRDF
-    float theta_i = l.DotProduct(normal);
-    float theta_y = (-l).DotProduct(light_normal);
-    float G = clamp((theta_i * theta_y) / l.SqrL2Norm());
+    float cos_theta_i = omega_i.DotProduct(hit_normal);
+    float cos_theta_y = (-omega_i).DotProduct(light_normal);
+//    float G = clamp((cos_theta_i * cos_theta_y) / omega_i.SqrL2Norm());
 
-    Vector3 result = light->get_color() * G * pdf;
-    return result;
+    float P = cos_theta_y / distance_squared;
+
+    Vector3 f_r = diffuse_color / M_PI;
+    Vector3 L_i = light->get_color();
+    float pdf = 1 / TriangleLight::TotalLightArea;
+    Vector3 L_r = L_i * f_r * P * (cos_theta_i) / pdf;
+    return L_r;
 }

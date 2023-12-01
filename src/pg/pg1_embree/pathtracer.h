@@ -71,4 +71,6 @@ private:
 
     Vector3 get_color_nne(Vector3 normal, Vector3 omega_o, Vector3 hit_point, Vector3 diffuse_color,
                           Vector3 specular_color, float shininess, int depth);
+
+    Vector3 get_direct_light_color(Vector3 hit_point, Vector3 normal, Vector3 diffuse_color);
 };

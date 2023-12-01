@@ -7,11 +7,15 @@
 
 bool TriangleLight::NNE = false;
 
+float TriangleLight::TotalLightArea = 0;
+
 void TriangleLight::calculate_cdf(std::vector<std::shared_ptr<TriangleLight>> lights) {
     float sum = 0;
     for(auto &light : lights){
         sum += light->triangle->area;
     }
+
+    TotalLightArea = sum;
 
     for(auto &light : lights){
         light->cdf = light->triangle->area / sum;
