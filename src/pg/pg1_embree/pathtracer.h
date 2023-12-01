@@ -64,4 +64,6 @@ private:
                  float shininess, int depth);
 
     Vector3 sample_cosine_lobe(Vector3 omega_r, float gamma, float &pdf);
+
+    static void fresnel_reflectance(Vector3 diffuse, Vector3 specular, float cos_theta, Vector3 &F, Vector3 &Rd);
 };

@@ -106,7 +106,7 @@ Vector3 operator-( const Vector3 & v )
 	return Vector3( -v.x, -v.y, -v.z );
 }
 
-Vector3 operator+( const Vector3 & u, const Vector3 & v )
+Vector3 operator+(const Vector3 & u, const Vector3 & v )
 {
 	return Vector3( u.x + v.x, u.y + v.y, u.z + v.z );
 }

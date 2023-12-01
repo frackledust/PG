@@ -272,11 +272,11 @@ Vector3 Pathtracer::trace(Ray ray, const int depth = 0) {
 //        return get_phong_simple(normal, v, hit_point,material->diffuse,
 //                                material->specular, material->shininess, depth);
 
-//        return get_phong_LW(normal, v, hit_point, material->diffuse,
-//                            material->specular, material->shininess, depth);
+        return get_phong_LW(normal, v, hit_point, material->diffuse,
+                            material->specular, material->shininess, depth);
 
-        return get_phong_arvo(normal, v, hit_point, material->diffuse,
-                              material->specular, material->shininess, depth);
+//        return get_phong_arvo(normal, v, hit_point, material->diffuse,
+//                              material->specular, material->shininess, depth);
     }
 
     // LAMBERT
@@ -303,39 +303,46 @@ Vector3 Pathtracer::get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_
 
         Ray secondary_ray = make_secondary_ray(hit_point, omega_i, IOR_AIR);
         Vector3 L_i = trace(secondary_ray, depth + 1);
-
         pdf*= diffuse_max / (diffuse_max + specular_max);
 
         float cos_theta = omega_i.DotProduct(normal);
 
+        fresnel_reflectance(diffuse_color, specular_color, cos_theta, specular_color, diffuse_color);
         Vector3 f_r = diffuse_color / M_PI;
 
-        Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf * alpha );
+        Vector3 L_r = L_i * f_r * (cos_theta) / (pdf * alpha);
         return L_r;
     }
 
     float pdf;
     Vector3 omega_r = omega_o.Reflect(normal);
     Vector3 omega_i = sample_cosine_lobe(omega_r, shininess, pdf);
-    if(omega_i.DotProduct(normal) < 0.0f){
+
+
+    if (omega_i.DotProduct(normal) <= 0.0f){
         return {0, 0, 0};
     }
 
     Ray secondary_ray = make_secondary_ray(hit_point, omega_i, IOR_AIR);
     Vector3 L_i = trace(secondary_ray, depth + 1);
 
-    pdf*= specular_max / (diffuse_max + specular_max);
-
     float cos_theta = omega_i.DotProduct(normal);
     float cos_theta_r = clamp(omega_i.DotProduct(omega_r));
 
-    float I_m = arvo_integrate_modified_phong(normal, omega_i, (int) round(shininess));
+    pdf*= specular_max / (diffuse_max + specular_max);
+
+    fresnel_reflectance(diffuse_color, specular_color, cos_theta, specular_color, diffuse_color);
+
+    // Note: use omega_i or omega_o?
+    float I_m = arvo_integrate_modified_phong(normal, omega_o, (int) round(shininess));
     Vector3 f_r = specular_color * 1 / I_m * powf(cos_theta_r, shininess);
 
     // add cosine denominator
-    f_r = f_r / cos_theta;
+    if(diffuse_color == Vector3(0, 0, 0)){
+        f_r = f_r / cos_theta;
+    }
 
-    Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf * alpha );
+    Vector3 L_r = L_i * f_r * (cos_theta) / (pdf * alpha);
     return L_r;
 }
 
@@ -363,7 +370,7 @@ Vector3 Pathtracer::get_phong_LW(Vector3 normal, Vector3 omega_o, Vector3 hit_po
          Vector3 f_r = diffuse_color / M_PI;
          float cos_theta = omega_i.DotProduct(normal);
 
-         Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf * alpha);
+         Vector3 L_r = L_i * f_r * (cos_theta) / (pdf * alpha);
          return L_r;
     }
 
@@ -388,9 +395,11 @@ Vector3 Pathtracer::get_phong_LW(Vector3 normal, Vector3 omega_o, Vector3 hit_po
      Vector3 f_r = (specular_color * (shininess + 2)) / (2 * M_PI) * powf(cos_theta_r, shininess);
 
     // add cosine denominator
-    f_r = f_r / cos_theta;
+    if(diffuse_color == Vector3(0, 0, 0)){
+        f_r = f_r / cos_theta;
+    }
 
-     Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf * alpha);
+     Vector3 L_r = L_i * f_r * (cos_theta) / (pdf * alpha);
      return L_r;
 }
 
@@ -496,6 +505,8 @@ Vector3 Pathtracer::sample_cosine_lobe(Vector3 omega_r, float gamma, float &pdf)
     Vector3 result = {x, y, z};
     result.Normalize();
 
+    float pdf_2 = (gamma + 1) / (2 * M_PI) * pow(z, gamma);
+
     // Transformation from Local Reference Frame to World Reference Frame
     Vector3 o2 = orthogonal(omega_r);
     Vector3 o1 = o2.CrossProduct(omega_r);
@@ -504,12 +515,11 @@ Vector3 Pathtracer::sample_cosine_lobe(Vector3 omega_r, float gamma, float &pdf)
     // Switch rows and columns
     T_rs.Transpose();
 
-    float pdf_2 = (gamma + 1) / (2 * M_PI) * pow(z, gamma);
-
     result = T_rs * result;
 
     float cos_theta_r = clamp(result.DotProduct(omega_r));
     pdf = (gamma + 1) / (2 * M_PI) * powf(cos_theta_r,  gamma);
+    assert(pdf == pdf_2);
 
     return result;
 }
@@ -543,4 +553,14 @@ float Pathtracer::arvo_integrate_modified_phong(Vector3 Normal, Vector3 omega_i,
 
     float I_m = 2 * (t_k + A*cos_theta + cos_theta * cos_theta * t) / (n + 2);
     return I_m;
+}
+
+void Pathtracer::fresnel_reflectance(Vector3 diffuse, Vector3 specular, float cos_theta, Vector3 &F, Vector3 &Rd){
+    Vector3 F_0 = specular;
+    Vector3 ones = {1, 1, 1};
+
+    F = F_0 + (ones - F_0) * pow(1 - cos_theta, 5);
+    Rd = (1 - F.LargestComponentValue()) / (1 - specular.LargestComponentValue()) * diffuse;
+
+    assert((F + Rd) < ones);
 }
