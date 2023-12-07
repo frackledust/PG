@@ -46,26 +46,26 @@ newmtl white_light
   illum 0
   shader 5
 
-newmtl white_phong
+newmtl white_phong_
 	Ns 32
   Ni 1.460
 	d 1
 	Tr 0
 	Tf 1 1 1
-	illum 3
+	illum 6
   Ka 0.2 0.2 0.2
   Kd 0.8 0.8 0.8
   Ks 0.8 0.8 0.8
   Ke 0.0 0.0 0.0
   shader 7
 
-newmtl white_phong_
-	Ns 2000
+newmtl white_phong
+	Ns 32
   Ni 1.460
 	d 1
 	Tr 0
 	Tf 1 1 1
-	illum 3
+	illum 6
     Ka 0.1 0.1 0.1
 	Kd 0.0 0.0 0.0
 	Ks 1.0 1.0 1.0
