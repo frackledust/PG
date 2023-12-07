@@ -67,10 +67,8 @@ private:
 
     static void fresnel_reflectance(Vector3 diffuse, Vector3 specular, float cos_theta, Vector3 &F, Vector3 &Rd);
 
-    Vector3 get_direct_light_color(Vector3 hit_point, Vector3 normal);
-
-    Vector3 get_color_nne(Vector3 normal, Vector3 omega_o, Vector3 hit_point, Vector3 diffuse_color,
-                          Vector3 specular_color, float shininess, int depth);
-
     Vector3 get_direct_light_color(Vector3 hit_point, Vector3 normal, Vector3 diffuse_color);
+
+    Vector3 add_color_nne(Vector3 L_indirect, Vector3 f_r, Vector3 normal, Vector3 hit_point,
+                          bool has_hit_light, float russian_roulette);
 };

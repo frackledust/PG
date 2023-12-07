@@ -16,7 +16,7 @@ public:
 
     static bool NNE;
 
-    Vector3 get_random_point(float &pdf, Vector3 &normal) const {
+    Vector3 get_random_point(float &area, Vector3 &normal) const {
         float r1 = Random(0, 1);
         float r2 = Random(0, 1);
 
@@ -30,7 +30,7 @@ public:
         Vector3 p1 = triangle->vertices_[1].position;
         Vector3 p2 = triangle->vertices_[2].position;
 
-        pdf = triangle->area;
+        area = triangle->area;
         normal = triangle->get_normal(u, v);
 
         return p0 * u + p1 * v + p2 * w;

@@ -5,7 +5,7 @@
 #include <iostream>
 #include "TriangleLight.h"
 
-bool TriangleLight::NNE = false;
+bool TriangleLight::NNE = true;
 
 float TriangleLight::TotalLightArea = 0;
 

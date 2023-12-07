@@ -198,7 +198,7 @@ Ray Pathtracer::make_secondary_ray(const Vector3& origin, const Vector3& dir, co
 
 Color4f Pathtracer::get_pixel(const int x, const int y, const float t)
 {
-    int sample_count = 20;
+    int sample_count = 15;
     int total_samples = sample_count * sample_count;
 
     Vector3 acc = {0, 0, 0};
@@ -267,11 +267,6 @@ Vector3 Pathtracer::trace(Ray &ray, const int depth = 0) {
 
     Vector3 hit_point = ray.get_hit_point();
 
-    if(TriangleLight::NNE){
-        return get_color_nne(normal, v, hit_point, material->diffuse,
-                             material->specular, material->shininess, depth);
-    }
-
     if(material->shader_id == ShaderID::Mirror){
         Vector3 omega_i = v.Reflect(normal);
         omega_i.Normalize();
@@ -299,34 +294,16 @@ Vector3 Pathtracer::trace(Ray &ray, const int depth = 0) {
     return get_color_lambert(material->diffuse, normal, ray.get_hit_point(), depth);
 }
 
-Vector3 Pathtracer::get_color_nne(Vector3 normal, Vector3 omega_o, Vector3 hit_point,
-                                  Vector3 diffuse_color, Vector3 specular_color, float shininess, int depth){
+Vector3 Pathtracer::add_color_nne(Vector3 L_indirect, Vector3 f_r, Vector3 normal,Vector3 hit_point,
+                                  bool has_hit_light, float russian_roulette){
 
-    Vector3 L_direct = get_direct_light_color(hit_point, normal, diffuse_color);
+    Vector3 L_direct = get_direct_light_color(hit_point, normal, f_r);
 
-    // ---------------------------------------------------------------------------------------------------
-
-    // russian roulette
-    float alpha = diffuse_color.LargestComponentValue();
-    if(alpha <= Random(0, 1)){
-        return {0, 0, 0};
+    if(has_hit_light && (L_direct > Vector3(0, 0, 0))){
+        return L_direct / russian_roulette;
     }
 
-    float pdf;
-    Vector3 omega_i = sample_cosine_hemisphere(normal, pdf);
-    Ray secondary_ray = make_secondary_ray(hit_point, omega_i, IOR_AIR);
-    Vector3 L_i = trace(secondary_ray, depth + 1);
-
-    if(TriangleLight::NNE && secondary_ray.nne_has_hit_light && (L_direct > Vector3(0, 0, 0))){
-        return {0, 0, 0};
-    }
-
-    float cos_theta = omega_i.DotProduct(normal);
-    Vector3 f_r = diffuse_color / M_PI;
-    Vector3 L_indirect = L_i * f_r * (cos_theta) / ( pdf * alpha);
-
-    // ---------------------------------------------------------------------------------------------------
-    Vector3 L_r = L_direct + L_indirect;
+    Vector3 L_r = (L_direct + L_indirect) / russian_roulette;
     return L_r;
 }
 
@@ -357,8 +334,11 @@ Vector3 Pathtracer::get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_
         fresnel_reflectance(diffuse_color, specular_color, cos_theta, specular_color, diffuse_color);
         Vector3 f_r = diffuse_color / M_PI;
 
-        Vector3 L_r = L_i * f_r * (cos_theta) / (pdf * alpha);
-        return L_r;
+        Vector3 L_r = L_i * f_r * (cos_theta) / (pdf);
+        if(TriangleLight::NNE) {
+            return add_color_nne(L_r, f_r, normal, hit_point, secondary_ray.nne_has_hit_light, alpha);
+        }
+        return L_r / alpha;
     }
 
     float pdf;
@@ -374,11 +354,12 @@ Vector3 Pathtracer::get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_
     Vector3 L_i = trace(secondary_ray, depth + 1);
 
     float cos_theta = omega_i.DotProduct(normal);
+    float cos_theta_o = omega_o.DotProduct(normal);
     float cos_theta_r = clamp(omega_i.DotProduct(omega_r));
 
     pdf*= specular_max / (diffuse_max + specular_max);
 
-    fresnel_reflectance(diffuse_color, specular_color, cos_theta, specular_color, diffuse_color);
+    fresnel_reflectance(diffuse_color, specular_color, cos_theta_o, specular_color, diffuse_color);
 
     // Note: use omega_i or omega_o?
     float I_m = arvo_integrate_modified_phong(normal, omega_o, (int) round(shininess));
@@ -484,8 +465,12 @@ Vector3 Pathtracer::get_color_lambert(Vector3 diffuse_color, Normal3f normal, Ve
 
     float cos_theta = omega_i.DotProduct(normal);
     Vector3 f_r = diffuse_color / M_PI;
-    Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf * alpha);
-    return L_r;
+    Vector3 L_r = L_i * f_r * (cos_theta) / ( pdf );
+
+    if(TriangleLight::NNE){
+        return add_color_nne(L_r, f_r, normal, hit_point, secondary_ray.nne_has_hit_light, alpha);
+    }
+    return L_r / alpha;
 }
 
 Vector3 Pathtracer::sample_hemisphere(Normal3f normal, float &pdf) {
@@ -560,7 +545,7 @@ Vector3 Pathtracer::sample_cosine_lobe(Vector3 omega_r, float gamma, float &pdf)
 
     float cos_theta_r = clamp(result.DotProduct(omega_r));
     pdf = (gamma + 1) / (2 * M_PI) * powf(cos_theta_r,  gamma);
-    assert(pdf == pdf_2);
+    // pdf = pdf_2;
 
     return result;
 }
@@ -601,9 +586,7 @@ void Pathtracer::fresnel_reflectance(Vector3 diffuse, Vector3 specular, float co
     Vector3 ones = {1, 1, 1};
 
     F = F_0 + (ones - F_0) * pow(1 - cos_theta, 5);
-    Rd = (1 - F.LargestComponentValue()) / (1 - specular.LargestComponentValue()) * diffuse;
-
-    assert((F + Rd) < ones);
+    Rd = ((1 - F.LargestComponentValue()) / (1 - specular.LargestComponentValue())) * diffuse;
 }
 
 Vector3 Pathtracer::get_direct_light_color(Vector3 hit_point, Vector3 hit_normal, Vector3 diffuse_color){
@@ -615,6 +598,7 @@ Vector3 Pathtracer::get_direct_light_color(Vector3 hit_point, Vector3 hit_normal
     float area;
     Vector3 light_normal;
     Vector3 light_point = light->get_random_point(area, light_normal);
+    light_normal.Normalize();
 
     // check if light is visible
     if(!is_visible(hit_point, light_point)){
@@ -623,19 +607,18 @@ Vector3 Pathtracer::get_direct_light_color(Vector3 hit_point, Vector3 hit_normal
 
     // get direction to light
     Vector3 omega_i = light_point - hit_point;
-    float distance_squared = omega_i.SqrL2Norm();
+    float distance_squared = omega_i.DotProduct(omega_i);
     omega_i.Normalize();
 
+    Vector3 omega_y = -omega_i;
     // get BRDF
     float cos_theta_i = omega_i.DotProduct(hit_normal);
-    float cos_theta_y = (-omega_i).DotProduct(light_normal);
-//    float G = clamp((cos_theta_i * cos_theta_y) / omega_i.SqrL2Norm());
-
-    float P = cos_theta_y / distance_squared;
+    float cos_theta_y = omega_y.DotProduct(light_normal);
+    float G = clamp((cos_theta_i * cos_theta_y) / distance_squared);
 
     Vector3 f_r = diffuse_color / M_PI;
     Vector3 L_i = light->get_color();
-    float pdf = 1 / TriangleLight::TotalLightArea;
-    Vector3 L_r = L_i * f_r * P * (cos_theta_i) / pdf;
+//    float pdf = 1 / area;
+    Vector3 L_r = L_i * f_r * G * area;
     return L_r;
 }
