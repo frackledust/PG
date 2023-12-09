@@ -2,6 +2,7 @@
 #define MY_MATH_H_
 
 #define _USE_MATH_DEFINES
+#include <boost/math/special_functions/beta.hpp>
 #include <math.h>
 #include <float.h>
 #include "structs.h"
@@ -45,6 +46,14 @@ inline Vector3 orthogonal( const Vector3 & n )
 
 inline float clamp(float x, float x0 = 0.0f, float x1 = 1.0f){
     return max(min(x, x1), x0);
+}
+
+inline float ibeta( float x, float a, float b){
+    return boost::math::beta( a, b, x );
+}
+
+inline static float gamma_quot(float a, float b){
+    return std::exp(std::lgamma(a) - std::lgamma(b));
 }
 
 #endif

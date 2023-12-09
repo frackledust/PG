@@ -52,6 +52,8 @@ private:
 
     static float arvo_integrate_modified_phong(Vector3 Normal, Vector3 omega_i, int n);
 
+    static float get_Mallett_Yuksel_IM(float NdotV, float n);
+
     Vector3 get_color_lambert(Vector3 diffuse_color, Normal3f normal, Vector3 hit_point, int depth);
 
     Vector3 get_phong_simple(Normal3f normal, Vector3 omega_o, Vector3 hit_point, Vector3 diffuse_color,

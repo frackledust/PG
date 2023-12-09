@@ -8,6 +8,7 @@ include_directories(src/libs/gl3w/include)
 include_directories(src/libs/embree/include)
 include_directories(src/libs/freeimage/include)
 include_directories(src/libs/imgui/include)
+include_directories(src/libs/boost_1_82_0/boost_1_82_0)
 
 include_directories(src/pg/pg1_embree)
 

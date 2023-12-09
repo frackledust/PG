@@ -357,12 +357,12 @@ Vector3 Pathtracer::get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_
     Vector3 L_i = trace(secondary_ray, depth + 1);
 
     float cos_theta = omega_i.DotProduct(normal);
-    //float cos_theta_o = omega_o.DotProduct(normal);
     float cos_theta_r = clamp(omega_i.DotProduct(omega_r));
 
     pdf*= specular_max / (diffuse_max + specular_max);
 
-    float I_m = arvo_integrate_modified_phong(normal, omega_o, (int) round(shininess));
+    //float I_m_2 = arvo_integrate_modified_phong(normal, omega_o, (int) round(shininess));
+    float I_m = get_Mallett_Yuksel_IM(cos_theta_o, shininess);
     Vector3 f_r = specular_color * (1 / I_m) * powf(cos_theta_r, shininess);
 
     Vector3 L_r = L_i * f_r * (cos_theta) / (pdf * alpha);
@@ -554,7 +554,7 @@ Vector3 Pathtracer::sample_cosine_lobe(Vector3 omega_r, float gamma, float &pdf)
 
 float Pathtracer::arvo_integrate_modified_phong(Vector3 Normal, Vector3 omega_i, int n){
     float cos_theta = omega_i.DotProduct(Normal);
-    float s = sqrt(1 - cos_theta * cos_theta);
+    float s = sqrt(1 - (cos_theta * cos_theta));
     float A;
     int k;
     float t_k;
@@ -564,13 +564,13 @@ float Pathtracer::arvo_integrate_modified_phong(Vector3 Normal, Vector3 omega_i,
         t_k = M_PI / 2;
     }
     else{
-        A = M_PI - acos(cos_theta);
+        A = M_PI - acosf(cos_theta);
         k = 1;
         t_k = s;
     }
 
     float t = 0;
-    while(k <= n - 2){
+    while(k <= (n - 2)){
         if (k == 0)
             break;
 
@@ -579,8 +579,24 @@ float Pathtracer::arvo_integrate_modified_phong(Vector3 Normal, Vector3 omega_i,
         t_k = s * s * ((k - 1) / k) * t_k;
     }
 
-    float I_m = 2 * (t_k + A*cos_theta + cos_theta * cos_theta * t) / (n + 2);
+    float I_m = 2 * (t_k + A*cos_theta + (cos_theta * cos_theta * t)) / (n + 2);
     return I_m;
+}
+
+float Pathtracer::get_Mallett_Yuksel_IM(float NdotV, float n) {
+    float const& costerm = NdotV;
+    float sinterm_sq = 1.0f - costerm * costerm;
+    float halfn = 0.5f * n;
+
+    float negterm = costerm;
+    if (n >= 1e-18f) {
+        negterm *= halfn * ibeta(sinterm_sq, halfn, 0.5);
+    }
+    return float(
+            2 * M_PI * costerm +
+            M_SQRT2 * gamma_quot(halfn + 0.5f, halfn + 1.0f) *
+                (std::powf(sinterm_sq, halfn) - negterm)
+           ) / (n + 2.0f);
 }
 
 void Pathtracer::fresnel_reflectance(Vector3 diffuse, Vector3 specular, float cos_theta, Vector3 &F, Vector3 &Rd){
@@ -595,14 +611,6 @@ void Pathtracer::fresnel_reflectance(Vector3 diffuse, Vector3 specular, float co
     }
 
     Rd = ((1 - F.LargestComponentValue()) / bottom) * diffuse;
-
-    if(Rd != Vector3(0, 0, 0)){
-        int a = 1;
-    }
-
-    if(F != Vector3(1, 1, 1)){
-        int a = 1;
-    }
 }
 
 Vector3 Pathtracer::get_direct_light_color(Vector3 hit_point, Vector3 hit_normal, Vector3 diffuse_color){
