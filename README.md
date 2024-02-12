@@ -4,7 +4,7 @@ This is a project for the PG1 course at VSB-TUO. The project is a ray tracer and
 Base-structure of the project and models were provided by the teacher to build upon.
 List of implemented features can be found below.  
 
-For anyone in the course right now, I wish you good luck, it might be a bit challenging, but it's doable.
+For anyone in the course right now, I wish you good luck, it might be a bit challenging, but it's doable.  
 The key is to ask question, debug debug debug and have fun with it.
 
 <img src="https://github.com/frackledust/PG/blob/main/results/ray_mirror.png" width="400">
