@@ -7,7 +7,7 @@ List of implemented features can be found below.
 For anyone in the course right now, I wish you good luck, it might be a bit challenging, but it's doable.
 The key is to ask question, debug debug debug and have fun with it.
 
-![](results\spaceship.png)
+<img src="https://github.com/frackledust/PG/blob/main/results/ray_mirror.png" width="400">
 
 ## Ray Tracing
 - most of these can be found in the `RayTracer` class, in the `raytracer.cpp` file
@@ -39,7 +39,7 @@ The key is to ask question, debug debug debug and have fun with it.
 1. [x]  BVH - Bounding volume hierarchy (construction and traversal) - time consuming
 1. [ ]  SAH - not implemented
 
-![](results\ray_mirror.png)
+<img src="https://github.com/frackledust/PG/blob/main/results/spaceship.png" width="400">
 
 ## Path Tracing
 - most of these can be found in the `PathTracer` class, in the `pathtracer.cpp` file
@@ -49,11 +49,11 @@ The key is to ask question, debug debug debug and have fun with it.
 1. [x]  Russian roulette
     - don't continue the path if the ray is "absorbed" (using random treshold)
 1. [x]  Modified Phong BRDF (energy-conserved)
-    - Lafortune and Willems’ Method
+    - Lafortune and Willemsâ€™ Method
     - specualar sampling and cosine-lobe sampling
 1. [ ]  Modified Phong BRDF (energy-normalized) - WIP
-    - Arvo’s Method
-    - Mallett’s and Yuksel’s Method
+    - Arvoâ€™s Method
+    - Mallettâ€™s and Yukselâ€™s Method
     - (issues with Furnace's test at 90 degrees)
 1. [ ]  Next event estimation (direct light sampling) - WIP
     - sample the light source directly
@@ -61,4 +61,4 @@ The key is to ask question, debug debug debug and have fun with it.
 1. [ ]  PBR with Cook-Torrance BRDF - not implemented - not implemented
 1. [ ]  Image-based lighting (with and w/o importance sampling) - not implemented
 
-![](results\pathtracer.png)
+<img src="https://github.com/frackledust/PG/blob/main/results/pathtracer.png" width="400">
