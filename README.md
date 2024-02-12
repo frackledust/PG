@@ -58,7 +58,7 @@ The key is to ask question, debug debug debug and have fun with it.
 1. [ ]  Next event estimation (direct light sampling) - WIP
     - sample the light source directly
     - area form sampling
-1. [ ]  PBR with Cook-Torrance BRDF - not implemented - not implemented
+1. [ ]  PBR with Cook-Torrance BRDF - not implemented
 1. [ ]  Image-based lighting (with and w/o importance sampling) - not implemented
 
 <img src="https://github.com/frackledust/PG/blob/main/results/pathtracer.png" width="400">
