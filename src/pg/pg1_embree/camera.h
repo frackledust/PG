@@ -31,7 +31,7 @@ public:
 	/* generate primary ray, top-left pixel image coordinates (xi, yi) are in the range <0, 1) x <0, 1) */
 	Ray GenerateRay( float xi, float yi ) const;
 
-    std::vector<Ray> GenerateRays(float x_i, float y_i, float focal_distance, int number_of_rays, float aperture) const;
+    std::vector<Ray> GenerateRaysDoF(float x_i, float y_i, float focal_distance, int number_of_rays, float aperture) const;
 
 private:
 	int width_{ 640 }; // image width (px)

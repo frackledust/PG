@@ -42,8 +42,7 @@ private:
 	RTCScene scene_;
 	Camera camera_;
 
-    //    Vector3 omni_light_position_ = Vector3(100, 0, 130);
-    Vector3 omni_light_position_ = Vector3(0, 0, 485);
+    Vector3 omni_light_position_ = Vector3(100, 0, 130);
 
     bool is_visible(Vector3 hit_point, Vector3 light_point);
 

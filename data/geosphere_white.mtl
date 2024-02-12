@@ -6,8 +6,8 @@ newmtl wire_214229166
 	d 1
 	Tr 0
 	Tf 1 1 1
-	illum 2
+	illum 6
 	Ni 1.52
 	Ka 1 1 1
-	Kd 1 1 1
-	Ks 1 1 1
+	Kd 0.5 0.5 0.5
+	Ks 0.5 0.5 0.5

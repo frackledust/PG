@@ -103,7 +103,7 @@ void Raytracer::LoadScene(const std::string file_name)
 			triangles[i].v1 = k - 2;
 			triangles[i].v2 = k - 1;
 
-            //TODO: create BVH
+            //create BVH
             std::shared_ptr<BVHTriangle> bvh_triangle = std::make_shared<BVHTriangle>(triangle.vertex(0),
                                                                                       triangle.vertex(1),
                                                                                       triangle.vertex(2),
@@ -190,14 +190,23 @@ Ray Raytracer::make_secondary_ray(const Vector3& origin, const Vector3& dir, con
 
 Color4f Raytracer::get_pixel(const int x, const int y, const float t)
 {
-    int sample_count = 10;
+    int sample_count = 8;
     Vector3 acc = {0, 0, 0};
+
+    // Super sampling
     for (int i = 0; i < sample_count; i++) {
         for (int j = 0; j < sample_count; j++) {
             float x_in = x + i * (1.0 / sample_count) + Random(0, 1) / sample_count;
             float y_in = y + j * (1.0 / sample_count) + Random(0, 1) / sample_count;
 
-            auto rays = this->camera_.GenerateRays(x_in, y_in, 189, 1, 1.5);
+        // No Depth of field
+//            Ray ray(this->camera_.GenerateRay(x_in, y_in));
+//            auto rays = std::vector<Ray>{ray};
+
+        // Depth of field
+            auto rays = this->camera_.GenerateRaysDoF(x_in, y_in, 189,
+                                                      1, 1.5);
+
             Vector3 acc_d = {0, 0, 0};
             for(auto& ray : rays){
                 Vector3 result = trace(ray, 0);
@@ -210,7 +219,8 @@ Color4f Raytracer::get_pixel(const int x, const int y, const float t)
     acc /= (sample_count * sample_count);
     return static_cast<Color4f>(acc);
 
-//    Ray ray(this->camera_.GenerateRay((float)x, (float)y));
+//    // No super sampling
+//    Ray ray(this->camera_.GenerateRay(x, y));
 //    Vector3 result = trace(ray, 0);
 //    return static_cast<Color4f>(result);
 }
@@ -259,6 +269,10 @@ Vector3 Raytracer::trace(Ray ray, const int depth = 0) {
         }
 
         if(is_visible(hit_point, omni_light_position_)){
+            if(shaderId == ShaderID::Normal){
+                return {normal.x, normal.y, normal.z};
+            }
+
             if(shaderId == ShaderID::Lambert){
                 return get_color_lambert(ray, normal, l, material);
             }

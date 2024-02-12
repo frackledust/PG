@@ -103,7 +103,7 @@ void SimpleGuiDX11::Producer()
 		// compute rendering
 		//std::this_thread::sleep_for( std::chrono::milliseconds( 50 ) );
         std::cout << "Producer started" << std::endl;
-#pragma omp parallel for
+#pragma omp parallel for collapse(2) schedule(dynamic, 1)
 		for ( int y = 0; y < height_; ++y )
 		{		
 			for ( int x = 0; x < width_; ++x )

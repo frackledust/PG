@@ -37,6 +37,9 @@ public:
     }
 
     Vector3 get_color() const {
+        if(triangle->material->emission < Vector3(0, 0, 0)){
+            return {1, 1, 1};
+        }
         return triangle->material->emission;
     }
 

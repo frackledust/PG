@@ -10,6 +10,11 @@ bool TriangleLight::NNE = false;
 float TriangleLight::TotalLightArea = 0;
 
 void TriangleLight::calculate_cdf(std::vector<std::shared_ptr<TriangleLight>> lights) {
+    if(lights.empty()){
+        TriangleLight::NNE = false;
+        return;
+    }
+
     float sum = 0;
     for(auto &light : lights){
         sum += light->triangle->area;

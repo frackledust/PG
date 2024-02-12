@@ -5,6 +5,7 @@
 #include <boost/math/special_functions/beta.hpp>
 #include <math.h>
 #include <float.h>
+#include <iostream>
 #include "structs.h"
 
 template <class T> inline T sqr( const T x )
@@ -49,7 +50,13 @@ inline float clamp(float x, float x0 = 0.0f, float x1 = 1.0f){
 }
 
 inline float ibeta( float x, float a, float b){
-    return boost::math::beta( a, b, x );
+    try {
+        return boost::math::ibeta( a, b, x );
+    } catch (std::exception &e) {
+        std::cout << "ibeta exception: " << e.what() << std::endl;
+        std::cout << "x: " << x << " a: " << a << " b: " << b << std::endl;
+        return 0.0f;
+    }
 }
 
 inline static float gamma_quot(float a, float b){

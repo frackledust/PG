@@ -41,8 +41,8 @@ Ray Camera::GenerateRay(const float x_i, const float y_i) const
 	return r;
 }
 
-std::vector<Ray> Camera::GenerateRays(const float x_i, const float y_i, float focal_distance, int number_of_rays,
-                                      float aperture) const {
+std::vector<Ray> Camera::GenerateRaysDoF(const float x_i, const float y_i, float focal_distance, int number_of_rays,
+                                         float aperture) const {
     Vector3 d_c = Vector3(x_i - this->width_ * 0.5f, this->height_ * 0.5f - y_i, this->f_y_ * -1);
     d_c.Normalize();
     Vector3 d_w = this->M_c_w_ * d_c;

@@ -23,6 +23,8 @@ Pathtracer::Pathtracer(const int width, const int height,
 
 Pathtracer::~Pathtracer()
 {
+    delete [] buffer_data;
+    delete [] buffer_count;
 	ReleaseDeviceAndScene();
 }
 
@@ -231,7 +233,7 @@ Color4f Pathtracer::get_pixel(const int x, const int y, const float t)
 
 
 Vector3 Pathtracer::trace(Ray &ray, const int depth = 0) {
-    if(depth >= 100){
+    if(depth >= 10){
         return {0, 0, 0};
     }
 
@@ -244,8 +246,8 @@ Vector3 Pathtracer::trace(Ray &ray, const int depth = 0) {
         Vector3 ray_dir = ray.get_direction();
         //Color3f bg_color = background_->texel(ray_dir.x, ray_dir.y, ray_dir.z);
         //return {bg_color};
-        return {0, 0, 0};
-//        return {1, 1, 1};
+//        return {0, 0, 0};
+        return {0.5, 0.5, 0.5};
     }
 
     Vector3 d = ray.get_direction();
@@ -310,10 +312,9 @@ Vector3 Pathtracer::add_color_nne(Vector3 L_indirect, Vector3 f_r, Vector3 norma
 Vector3 Pathtracer::get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_point,
                                    Vector3 diffuse_color, Vector3 specular_color, float shininess, int depth){
     // energy normalized phong
-
     omega_o.Normalize();
     normal.Normalize();
-    float cos_theta_o = omega_o.DotProduct(normal);
+    float cos_theta_o = clamp(omega_o.DotProduct(normal), 0, 1);
     fresnel_reflectance(diffuse_color, specular_color, cos_theta_o, specular_color, diffuse_color);
 
     float diffuse_max = diffuse_color.LargestComponentValue();
@@ -356,7 +357,7 @@ Vector3 Pathtracer::get_phong_arvo(Vector3 normal, Vector3 omega_o, Vector3 hit_
     Ray secondary_ray = make_secondary_ray(hit_point, omega_i, IOR_AIR);
     Vector3 L_i = trace(secondary_ray, depth + 1);
 
-    float cos_theta = omega_i.DotProduct(normal);
+    float cos_theta = clamp(omega_i.DotProduct(normal));
     float cos_theta_r = clamp(omega_i.DotProduct(omega_r));
 
     pdf*= specular_max / (diffuse_max + specular_max);
@@ -584,7 +585,7 @@ float Pathtracer::arvo_integrate_modified_phong(Vector3 Normal, Vector3 omega_i,
 }
 
 float Pathtracer::get_Mallett_Yuksel_IM(float NdotV, float n) {
-    float const& costerm = NdotV;
+    float const& costerm = clamp(NdotV, -1.0f, 1.0f);
     float sinterm_sq = 1.0f - costerm * costerm;
     float halfn = 0.5f * n;
 
@@ -594,7 +595,7 @@ float Pathtracer::get_Mallett_Yuksel_IM(float NdotV, float n) {
     }
     return float(
             2 * M_PI * costerm +
-            M_SQRT2 * gamma_quot(halfn + 0.5f, halfn + 1.0f) *
+            sqrt(M_PI) * gamma_quot(halfn + 0.5f, halfn + 1.0f) *
                 (std::powf(sinterm_sq, halfn) - negterm)
            ) / (n + 2.0f);
 }
